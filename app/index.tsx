@@ -1,15 +1,49 @@
-import { Text, View } from "react-native";
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { useAuth } from "../context/AuthContext";
 
-export default function Index() {
-  return (
-    <View
-      style={{
+export default function IndexScreen() {
+    const router = useRouter();
+    const { user } = useAuth();
+    const [isReady, setIsReady] = useState(false);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setIsReady(true);
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, []);
+
+    useEffect(() => {
+        if (!isReady) return;
+
+        if (user) {
+            router.replace("/(tabs)/home");
+        } else {
+            // For now, redirect to home tab directly.
+            // Replace with router.replace("/auth/login") when auth screens are ready.
+            router.replace("/(tabs)/home");
+        }
+    }, [user, isReady, router]);
+
+    if (!isReady) {
+        return (
+            <View style={styles.container}>
+                <ActivityIndicator size="large" color="#0d631b" />
+            </View>
+        );
+    }
+
+    return null;
+}
+
+const styles = StyleSheet.create({
+    container: {
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
-      }}
-    >
-      <Text>Edit app/index.tsx to edit this screen.</Text>
-    </View>
-  );
-}
+        backgroundColor: "#f8f9fa",
+    },
+});
