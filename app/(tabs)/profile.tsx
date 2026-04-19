@@ -1,25 +1,26 @@
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Image,
-  Platform,
-  Alert,
-  Modal,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
+import { useMutation } from "convex/react";
+import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
+import React, { useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../context/AuthContext";
-import { useDashboardData } from "../../hooks/useDashboardData";
-import * as ImagePicker from "expo-image-picker";
-import { useMutation } from "convex/react";
+import { useLanguage } from "../../context/LanguageContext";
 import { api } from "../../convex/_generated/api";
-import { ActivityIndicator } from "react-native";
+import { useDashboardData } from "../../hooks/useDashboardData";
 
 // ─── Color Tokens ───
 const C = {
@@ -49,12 +50,14 @@ const C = {
 export default function ProfileScreen() {
   const { user, setUser } = useAuth();
   const router = useRouter();
-  
+
   // Get real dashboard data
-  const dashboard = useDashboardData() as any; 
+  const dashboard = useDashboardData() as any;
   const totalInsights = dashboard.totalInsights || 0;
   const savingsRate = dashboard.savingsRate || "0.0";
-  
+
+  const { t, language, setLanguage } = useLanguage();
+
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [darkModeEnabled, setDarkModeEnabled] = useState(false);
   const [isMenuVisible, setIsMenuVisible] = useState(false);
@@ -75,25 +78,25 @@ export default function ProfileScreen() {
       if (!result.canceled) {
         setIsUploading(true);
         const imageUri = result.assets[0].uri;
-        
+
         // 1. Get short-lived upload URL
         const postUrl = await generateUploadUrl();
-        
+
         // 2. Fetch the image locally to convert to Blob/File
         const response = await fetch(imageUri);
         const blob = await response.blob();
-        
+
         // 3. PUT to Convex storage
         const uploadResult = await fetch(postUrl, {
           method: "POST",
           body: blob,
         });
         const { storageId } = await uploadResult.json();
-        
+
         // 4. Save to user datastore
-        const newUrl = await updatePhoto({ 
-          userId: user?._id as any, 
-          storageId 
+        const newUrl = await updatePhoto({
+          userId: user?._id as any,
+          storageId
         });
 
         // 5. Update local context
@@ -111,12 +114,12 @@ export default function ProfileScreen() {
 
   const handleLogout = () => {
     Alert.alert(
-      "Logout",
-      "Are you sure you want to log out of DailyBoost AI?",
+      t("logout_confirm_title"),
+      t("logout_confirm_desc"),
       [
-        { text: "Cancel", style: "cancel" },
+        { text: t("cancel"), style: "cancel" },
         {
-          text: "Logout",
+          text: t("logout"),
           style: "destructive",
           onPress: () => {
             setUser(null);
@@ -128,24 +131,25 @@ export default function ProfileScreen() {
   };
 
   const joinDate = user?.createdAt
-    ? new Date(user.createdAt).toLocaleDateString("en-US", { month: "short", year: "numeric" })
-    : "Recently";
+    ? new Date(user.createdAt).toLocaleDateString(language === "en" ? "en-US" : "id-ID", { month: "short", year: "numeric" })
+    : t("recently");
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
       {/* ━━━ HEADER ━━━ */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <TouchableOpacity 
-            activeOpacity={0.7} 
+          <TouchableOpacity
+            activeOpacity={0.7}
             style={styles.iconButton}
             onPress={() => setIsMenuVisible(true)}
           >
             <MaterialIcons name="menu" size={24} color={C.primary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Profile</Text>
+          <Text style={styles.headerTitle}>{t("profile")}</Text>
         </View>
-        <View style={{ width: 40 }} /> {/* Empty spacer to balance header */}
+        {/* Empty spacer to balance header */}
+        <View style={{ width: 40 }} />
       </View>
       <View style={styles.headerDivider} />
 
@@ -157,29 +161,29 @@ export default function ProfileScreen() {
         onRequestClose={() => setIsMenuVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <TouchableOpacity 
-            style={styles.modalDismissArea} 
-            activeOpacity={1} 
-            onPress={() => setIsMenuVisible(false)} 
+          <TouchableOpacity
+            style={styles.modalDismissArea}
+            activeOpacity={1}
+            onPress={() => setIsMenuVisible(false)}
           />
           <View style={styles.sideMenu}>
             <View style={styles.sideMenuHeader}>
-              <Text style={styles.sideMenuTitle}>Menu</Text>
+              <Text style={styles.sideMenuTitle}>{t("menu")}</Text>
               <TouchableOpacity onPress={() => setIsMenuVisible(false)}>
                 <MaterialIcons name="close" size={24} color={C.onSurfaceVariant} />
               </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false}>
               {[
-                { icon: "sync", title: "Refresh Data", action: () => { setIsMenuVisible(false); Alert.alert("Synced", "Data updated."); } },
-                { icon: "file-download", title: "Export Summary", action: () => { setIsMenuVisible(false); Alert.alert("Exporting", "Financial summary is being downloaded to your device."); } },
-                { icon: "auto-awesome", title: "AI Model Settings", action: () => { setIsMenuVisible(false); Alert.alert("AI Settings", "Preferences opened."); } },
-                { icon: "star-rate", title: "Rate App", action: () => { setIsMenuVisible(false); Alert.alert("Thank you!", "Redirecting to App Store..."); } },
-                { icon: "bug-report", title: "Report a Bug", action: () => { setIsMenuVisible(false); } },
+                { icon: "sync", title: t("refresh_data"), action: () => { setIsMenuVisible(false); Alert.alert(t("synced"), t("data_updated")); } },
+                { icon: "file-download", title: t("export_summary"), action: () => { setIsMenuVisible(false); Alert.alert(t("exporting"), t("export_desc")); } },
+                { icon: "auto-awesome", title: t("ai_settings"), action: () => { setIsMenuVisible(false); Alert.alert(t("ai_settings"), t("ai_settings_msg")); } },
+                { icon: "star-rate", title: t("rate_app"), action: () => { setIsMenuVisible(false); Alert.alert(t("thank_you"), t("redirect_store")); } },
+                { icon: "bug-report", title: t("report_bug"), action: () => { setIsMenuVisible(false); } },
               ].map((item, idx) => (
-                <TouchableOpacity 
-                  key={idx} 
-                  style={styles.sideMenuItem} 
+                <TouchableOpacity
+                  key={idx}
+                  style={styles.sideMenuItem}
                   activeOpacity={0.7}
                   onPress={item.action}
                 >
@@ -214,7 +218,7 @@ export default function ProfileScreen() {
                       />
                     ) : (
                       <View style={styles.avatarPlaceholder}>
-                         <MaterialIcons name="person" size={48} color={C.primaryFixedDim} />
+                        <MaterialIcons name="person" size={48} color={C.primaryFixedDim} />
                       </View>
                     )}
                     {isUploading && (
@@ -232,47 +236,49 @@ export default function ProfileScreen() {
 
             <View style={styles.heroTextContent}>
               <Text style={styles.userName}>{user?.name || "DailyBoost User"}</Text>
-              <Text style={styles.userJoined}>Premium Member since {joinDate}</Text>
+              <Text style={styles.userJoined}>{t("premium_member_since")} {joinDate}</Text>
               <View style={styles.tagsRow}>
                 <View style={styles.tagProsperous}>
-                  <Text style={styles.tagTextProsperous}>PROSPEROUS TIER</Text>
+                  <Text style={styles.tagTextProsperous}>{t("prosperous_tier")}</Text>
                 </View>
                 <View style={styles.tagSaver}>
-                  <Text style={styles.tagTextSaver}>TOP SAVER</Text>
+                  <Text style={styles.tagTextSaver}>{t("top_saver")}</Text>
                 </View>
               </View>
             </View>
           </View>
         </View>
+        <View style={{ height: 16 }} />
 
         {/* ━━━ STATS GRID ━━━ */}
         <View style={styles.statsGrid}>
           <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Wealth Growth</Text>
+            <Text style={styles.statLabel}>{t("wealth_growth")}</Text>
             <View style={styles.statValueContainer}>
               <Text style={styles.statValueGreen}>+{savingsRate}%</Text>
-              <Text style={styles.statSubtext}>average savings</Text>
+              <Text style={styles.statSubtext}>{t("average_savings")}</Text>
             </View>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Monthly Insights</Text>
+            <Text style={styles.statLabel}>{t("monthly_insights")}</Text>
             <View style={styles.statValueContainer}>
               <Text style={styles.statValueBlue}>{totalInsights}</Text>
-              <Text style={styles.statSubtext}>generated total</Text>
+              <Text style={styles.statSubtext}>{t("generated_total")}</Text>
             </View>
           </View>
         </View>
+        <View style={{ height: 12 }} />
 
         {/* ━━━ ACCOUNT SETTINGS ━━━ */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account Settings</Text>
+          <Text style={styles.sectionTitle}>{t("account_settings")}</Text>
           <View style={[styles.cardGroup, styles.elevation]}>
             <TouchableOpacity style={styles.listItem} activeOpacity={0.7}>
               <View style={styles.listLeft}>
                 <View style={[styles.iconBox, { backgroundColor: C.primaryFixed }]}>
                   <MaterialIcons name="person" size={20} color={C.primary} />
                 </View>
-                <Text style={styles.listText}>Personal Information</Text>
+                <Text style={styles.listText}>{t("personal_info")}</Text>
               </View>
               <MaterialIcons name="chevron-right" size={24} color={C.onSurfaceVariant} />
             </TouchableOpacity>
@@ -282,7 +288,7 @@ export default function ProfileScreen() {
                 <View style={[styles.iconBox, { backgroundColor: C.secondaryFixed }]}>
                   <MaterialIcons name="security" size={20} color={C.secondary} />
                 </View>
-                <Text style={styles.listText}>Security & Password</Text>
+                <Text style={styles.listText}>{t("security_password")}</Text>
               </View>
               <MaterialIcons name="chevron-right" size={24} color={C.onSurfaceVariant} />
             </TouchableOpacity>
@@ -292,23 +298,24 @@ export default function ProfileScreen() {
                 <View style={[styles.iconBox, { backgroundColor: C.primaryFixed }]}>
                   <MaterialIcons name="payments" size={20} color={C.primary} />
                 </View>
-                <Text style={styles.listText}>Payment Methods</Text>
+                <Text style={styles.listText}>{t("payment_methods")}</Text>
               </View>
               <MaterialIcons name="chevron-right" size={24} color={C.onSurfaceVariant} />
             </TouchableOpacity>
           </View>
         </View>
+        <View style={{ height: 12 }} />
 
         {/* ━━━ APP PREFERENCES ━━━ */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>App Preferences</Text>
+          <Text style={styles.sectionTitle}>{t("app_preferences")}</Text>
           <View style={[styles.cardGroup, styles.elevation]}>
             <View style={styles.listItem}>
               <View style={styles.listLeft}>
                 <View style={[styles.iconBox, { backgroundColor: C.tertiaryFixed }]}>
                   <MaterialIcons name="notifications" size={20} color={C.tertiary} />
                 </View>
-                <Text style={styles.listText}>Notifications</Text>
+                <Text style={styles.listText}>{t("notifications")}</Text>
               </View>
               <TouchableOpacity
                 style={[styles.switch, notificationsEnabled ? styles.switchOn : styles.switchOff]}
@@ -319,14 +326,18 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity style={[styles.listItem, styles.borderTop]} activeOpacity={0.7}>
+            <TouchableOpacity
+              style={[styles.listItem, styles.borderTop]}
+              activeOpacity={0.7}
+              onPress={() => setLanguage(language === "en" ? "id" : "en")}
+            >
               <View style={styles.listLeft}>
                 <View style={[styles.iconBox, { backgroundColor: C.surfaceContainerHigh }]}>
                   <MaterialIcons name="language" size={20} color={C.onSurface} />
                 </View>
-                <Text style={styles.listText}>Language</Text>
+                <Text style={styles.listText}>{t("language")}</Text>
               </View>
-              <Text style={styles.listRightText}>Bahasa Indonesia</Text>
+              <Text style={styles.listRightText}>{language === "en" ? "English" : "Bahasa Indonesia"}</Text>
             </TouchableOpacity>
 
             <View style={[styles.listItem, styles.borderTop]}>
@@ -334,7 +345,7 @@ export default function ProfileScreen() {
                 <View style={[styles.iconBox, { backgroundColor: C.inverseSurface }]}>
                   <MaterialIcons name="dark-mode" size={20} color={C.inverseOnSurface} />
                 </View>
-                <Text style={styles.listText}>Dark Mode</Text>
+                <Text style={styles.listText}>{t("dark_mode")}</Text>
               </View>
               <TouchableOpacity
                 style={[styles.switch, darkModeEnabled ? styles.switchOn : styles.switchOff]}
@@ -346,17 +357,18 @@ export default function ProfileScreen() {
             </View>
           </View>
         </View>
+        <View style={{ height: 12 }} />
 
         {/* ━━━ SUPPORT & INFO ━━━ */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Support & Info</Text>
+          <Text style={styles.sectionTitle}>{t("support_info")}</Text>
           <View style={[styles.cardGroup, styles.elevation]}>
             <TouchableOpacity style={styles.listItem} activeOpacity={0.7}>
               <View style={styles.listLeft}>
                 <View style={[styles.iconBox, { backgroundColor: C.surfaceContainerHigh }]}>
                   <MaterialIcons name="help" size={20} color={C.onSurfaceVariant} />
                 </View>
-                <Text style={styles.listText}>Help Center</Text>
+                <Text style={styles.listText}>{t("help_center")}</Text>
               </View>
               <MaterialIcons name="chevron-right" size={24} color={C.onSurfaceVariant} />
             </TouchableOpacity>
@@ -366,7 +378,7 @@ export default function ProfileScreen() {
                 <View style={[styles.iconBox, { backgroundColor: C.surfaceContainerHigh }]}>
                   <MaterialIcons name="info" size={20} color={C.onSurfaceVariant} />
                 </View>
-                <Text style={styles.listText}>About App</Text>
+                <Text style={styles.listText}>{t("about_app")}</Text>
               </View>
               <MaterialIcons name="chevron-right" size={24} color={C.onSurfaceVariant} />
             </TouchableOpacity>
@@ -376,7 +388,7 @@ export default function ProfileScreen() {
                 <View style={[styles.iconBox, { backgroundColor: C.surfaceContainerHigh }]}>
                   <MaterialIcons name="policy" size={20} color={C.onSurfaceVariant} />
                 </View>
-                <Text style={styles.listText}>Privacy Policy</Text>
+                <Text style={styles.listText}>{t("privacy_policy")}</Text>
               </View>
               <MaterialIcons name="chevron-right" size={24} color={C.onSurfaceVariant} />
             </TouchableOpacity>
@@ -386,8 +398,10 @@ export default function ProfileScreen() {
         {/* ━━━ LOGOUT BUTTON ━━━ */}
         <TouchableOpacity style={styles.logoutButton} activeOpacity={0.8} onPress={handleLogout}>
           <MaterialIcons name="logout" size={22} color={C.onErrorContainer} />
-          <Text style={styles.logoutText}>Logout</Text>
+          <Text style={styles.logoutText}>{t("logout")}</Text>
         </TouchableOpacity>
+
+        {/* ━━━ FLOATING AI BUTTON ━━━ */}
       </ScrollView>
 
       {/* ━━━ FLOATING AI BUTTON ━━━ */}

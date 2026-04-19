@@ -1,20 +1,21 @@
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import React from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
+  ActivityIndicator,
+  Dimensions,
   Image,
   Platform,
-  Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons, MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useDashboardData } from "../../hooks/useDashboardData";
 import { useAuth } from "../../context/AuthContext";
-import { ActivityIndicator } from "react-native";
+import { useLanguage } from "../../context/LanguageContext";
+import { useDashboardData } from "../../hooks/useDashboardData";
 
 const { width } = Dimensions.get("window");
 
@@ -75,19 +76,20 @@ function formatCurrency(num: number) {
 
 export default function HomeScreen() {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const { balance, totalIncome, totalExpense, transactions, goals, insight, isEmpty, isLoading } = useDashboardData();
 
   if (isLoading) {
     return (
       <SafeAreaView style={[styles.safeArea, { justifyContent: "center", alignItems: "center" }]} edges={["top"]}>
         <ActivityIndicator size="large" color={C.primary} />
-        <Text style={{ marginTop: 12, color: C.onSurfaceVariant, fontWeight: "500" }}>Loading Dashboard...</Text>
+        <Text style={{ marginTop: 12, color: C.onSurfaceVariant, fontWeight: "500" }}>{t("loading_dashboard")}</Text>
       </SafeAreaView>
     );
   }
 
   const { whole: balanceWhole, cents: balanceCents } = formatCurrency(Math.abs(balance));
-  
+
   // Calculate flow tracks width securely
   const totalFlow = totalIncome + totalExpense || 1;
   const incomeWidth = Math.min(100, Math.max(5, (totalIncome / totalFlow) * 100));
@@ -127,7 +129,7 @@ export default function HomeScreen() {
         <View style={styles.heroSection}>
           <View style={styles.statusDot}>
             <View style={styles.dot} />
-            <Text style={styles.statusLabel}>Portfolio Excellence</Text>
+            <Text style={styles.statusLabel}>{t("portfolio_excellence")}</Text>
           </View>
           <Text style={styles.heroAmount}>
             {balance < 0 ? "-" : ""}Rp {balanceWhole}<Text style={styles.heroCents}>.{balanceCents}</Text>
@@ -135,10 +137,10 @@ export default function HomeScreen() {
           <View style={styles.badgeRow}>
             <View style={styles.badgeGreen}>
               <MaterialIcons name="receipt-long" size={14} color={C.onPrimaryFixedVariant} />
-              <Text style={styles.badgeGreenText}>{transactions.length} Total Entries</Text>
+              <Text style={styles.badgeGreenText}>{transactions.length} {t("total_entries")}</Text>
             </View>
             <View style={styles.badgeNeutral}>
-              <Text style={styles.badgeNeutralText}>Live Sync</Text>
+              <Text style={styles.badgeNeutralText}>{t("live_sync")}</Text>
             </View>
           </View>
         </View>
@@ -153,17 +155,17 @@ export default function HomeScreen() {
           >
             <View style={styles.aiLabelRow}>
               <MaterialIcons name="lightbulb" size={18} color={C.onTertiaryFixed} />
-              <Text style={styles.aiLabel}>INTELLIGENCE FRAGMENT</Text>
+              <Text style={styles.aiLabel}>{t("intelligence_fragment")}</Text>
             </View>
             <Text style={styles.aiHeadline}>
-              {insight ? "New actionable insight available based on your data." : (isEmpty ? "Start adding transactions to receive AI insights." : "Activity monitoring active.")}
+              {insight ? t("new_insight_available") : (isEmpty ? t("start_adding_tx") : t("activity_monitoring"))}
             </Text>
             <Text style={styles.aiBody}>
-              {insight?.content || (isEmpty ? "Your personal financial assistant is waiting for your first entries." : "No new deep insights right now. Keep logging your budget!")}
+              {insight?.content || (isEmpty ? t("assistant_waiting") : t("no_new_insights"))}
             </Text>
             <View style={styles.aiButtonWrap}>
               <View style={styles.aiButton}>
-                <Text style={styles.aiButtonText}>{insight ? "Review Insight" : "Explore Feature"}</Text>
+                <Text style={styles.aiButtonText}>{insight ? t("review_insight") : t("explore_feature")}</Text>
               </View>
             </View>
           </LinearGradient>
@@ -173,42 +175,42 @@ export default function HomeScreen() {
         <View style={styles.flowRow}>
           {/* Inflow */}
           <View style={[styles.flowCard, styles.elevation]}>
-            <Text style={styles.flowLabel}>INFLOW</Text>
+            <Text style={styles.flowLabel}>{t("inflow")}</Text>
             <Text style={styles.flowAmount}>Rp {formatCurrency(totalIncome).whole}</Text>
             <View style={styles.progressTrack}>
               <View style={[styles.progressFill, { width: `${isEmpty ? 0 : incomeWidth}%`, backgroundColor: C.primary }]} />
             </View>
-            <Text style={styles.flowMeta}>{isEmpty ? "Track first income" : "Calculated correctly"}</Text>
+            <Text style={styles.flowMeta}>{isEmpty ? t("track_first_income") : t("calculated_correctly")}</Text>
           </View>
           {/* Outflow */}
           <View style={[styles.flowCard, styles.elevation]}>
-            <Text style={styles.flowLabel}>OUTFLOW</Text>
+            <Text style={styles.flowLabel}>{t("outflow")}</Text>
             <Text style={styles.flowAmount}>Rp {formatCurrency(totalExpense).whole}</Text>
             <View style={styles.progressTrack}>
               <View style={[styles.progressFill, { width: `${isEmpty ? 0 : expenseWidth}%`, backgroundColor: C.secondary }]} />
             </View>
-            <Text style={styles.flowMeta}>{isEmpty ? "Setup a budget" : "Tracked perfectly"}</Text>
+            <Text style={styles.flowMeta}>{isEmpty ? t("setup_budget") : t("tracked_perfectly")}</Text>
           </View>
         </View>
 
         {/* ━━━ RECENT LEDGER ━━━ */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Recent Ledger</Text>
+          <Text style={styles.sectionTitle}>{t("recent_ledger")}</Text>
           <TouchableOpacity activeOpacity={0.7}>
-            <Text style={styles.sectionAction}>Review All</Text>
+            <Text style={styles.sectionAction}>{t("review_all")}</Text>
           </TouchableOpacity>
         </View>
 
         <View style={[styles.ledgerWrap, isEmpty ? {} : styles.elevation]}>
           {isEmpty ? (
             <View style={{ paddingVertical: 20, alignItems: "center" }}>
-              <Text style={{ color: C.onSurfaceVariant, fontSize: 13, fontWeight: "500" }}>No transactions yet.</Text>
+              <Text style={{ color: C.onSurfaceVariant, fontSize: 13, fontWeight: "500" }}>{t("no_tx_yet")}</Text>
             </View>
           ) : (
             transactions.slice(0, 5).map((tx, idx) => {
               const appearance = getCategoryAppearance(tx.category);
               const txDate = new Date(tx.createdAt).toLocaleDateString();
-              
+
               return (
                 <TouchableOpacity
                   key={tx._id}
@@ -245,12 +247,12 @@ export default function HomeScreen() {
 
         {/* ━━━ GOAL TRACKING ━━━ */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Active Quest</Text>
+          <Text style={styles.sectionTitle}>{t("active_quest")}</Text>
         </View>
 
         {activeGoal ? (
           <TouchableOpacity activeOpacity={0.9} style={[styles.goalCard, styles.elevation]}>
-            <Text style={styles.goalLabel}>ACTIVE QUEST</Text>
+            <Text style={styles.goalLabel}>{t("active_quest_label")}</Text>
             <Text style={styles.goalTitle}>{activeGoal.title}</Text>
             <View style={styles.goalProgressSection}>
               <Text style={styles.goalProgressText}>Rp {formatCurrency(activeGoal.currentAmount).whole} / Rp {formatCurrency(activeGoal.targetAmount).whole}</Text>
@@ -266,7 +268,7 @@ export default function HomeScreen() {
           </TouchableOpacity>
         ) : (
           <View style={{ padding: 12, alignItems: "center" }}>
-            <Text style={{ color: C.onSurfaceVariant, fontSize: 13, fontWeight: "500" }}>No goals created yet.</Text>
+            <Text style={{ color: C.onSurfaceVariant, fontSize: 13, fontWeight: "500" }}>{t("no_goals_yet")}</Text>
           </View>
         )}
 
@@ -275,7 +277,7 @@ export default function HomeScreen() {
           <View style={styles.newGoalCircle}>
             <Ionicons name="add" size={28} color={C.primary} />
           </View>
-          <Text style={styles.newGoalText}>Manifest New Goal</Text>
+          <Text style={styles.newGoalText}>{t("manifest_goal")}</Text>
         </TouchableOpacity>
       </ScrollView>
 
