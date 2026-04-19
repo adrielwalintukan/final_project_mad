@@ -1,21 +1,29 @@
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { Ionicons } from '@expo/vector-icons';
+import React from 'react';
+import {
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from "react-native-safe-area-context";
-import { MaterialIcons } from "@expo/vector-icons";
 
 export default function InsightsScreen() {
+
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
+    <SafeAreaView style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>AI Insights</Text>
+        <Text style={styles.headerTitle}>AI Insights</Text>
       </View>
-      <View style={styles.placeholder}>
-        <View style={styles.iconCircle}>
-          <MaterialIcons name="lightbulb" size={40} color="#923357" />
+
+      {/* Coming Soon Content */}
+      <View style={styles.content}>
+        <View style={styles.iconWrapper}>
+          <Ionicons name="bulb" size={48} color="#7f2448" />
         </View>
-        <Text style={styles.placeholderTitle}>Coming Soon</Text>
-        <Text style={styles.placeholderText}>
-          Personalized AI-powered financial insights will appear here.
+        <Text style={styles.comingSoonTitle}>Coming Soon</Text>
+        <Text style={styles.comingSoonSubtitle}>
+          Personalized AI-powered financial insights{'\n'}will appear here.
         </Text>
       </View>
     </SafeAreaView>
@@ -25,43 +33,45 @@ export default function InsightsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8f9fa",
+    backgroundColor: '#f8f9fa',
   },
   header: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 8,
   },
-  title: {
+  headerTitle: {
     fontSize: 28,
-    fontWeight: "800",
-    color: "#191c1d",
+    fontWeight: '800',
+    color: '#191c1d',
     letterSpacing: -0.5,
   },
-  placeholder: {
+  content: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingBottom: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
   },
-  iconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "#ffd9e2",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 16,
+  iconWrapper: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#ffd9e2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
   },
-  placeholderTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#191c1d",
-    marginBottom: 8,
+  comingSoonTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#191c1d',
+    marginBottom: 10,
+    textAlign: 'center',
   },
-  placeholderText: {
-    fontSize: 14,
-    color: "#707a6c",
-    textAlign: "center",
-    paddingHorizontal: 40,
+  comingSoonSubtitle: {
+    fontSize: 15,
+    color: '#707a6c',
+    textAlign: 'center',
+    lineHeight: 22,
   },
 });

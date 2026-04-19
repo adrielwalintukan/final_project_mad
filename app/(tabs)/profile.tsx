@@ -1,3 +1,4 @@
+/app/(tabs)/profile.tsx
 import { MaterialIcons } from "@expo/vector-icons";
 import { useMutation } from "convex/react";
 import * as ImagePicker from "expo-image-picker";
@@ -405,7 +406,7 @@ export default function ProfileScreen() {
       </ScrollView>
 
       {/* ━━━ FLOATING AI BUTTON ━━━ */}
-      <TouchableOpacity activeOpacity={0.85} style={styles.fab}>
+      <TouchableOpacity activeOpacity={0.85} style={styles.fab} onPress={() => router.push('/aiChat')}> 
         <LinearGradient
           colors={[C.primary, C.primaryFixedDim]}
           start={{ x: 0, y: 0 }}
