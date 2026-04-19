@@ -22,9 +22,7 @@ export default function IndexScreen() {
         if (user) {
             router.replace("/(tabs)/home");
         } else {
-            // For now, redirect to home tab directly.
-            // Replace with router.replace("/auth/login") when auth screens are ready.
-            router.replace("/(tabs)/home");
+            router.replace("/auth/login");
         }
     }, [user, isReady, router]);
 
