@@ -12,6 +12,9 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons, MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useDashboardData } from "../../hooks/useDashboardData";
+import { useAuth } from "../../context/AuthContext";
+import { ActivityIndicator } from "react-native";
 
 const { width } = Dimensions.get("window");
 
@@ -46,41 +49,51 @@ const C = {
   error: "#ba1a1a",
 };
 
-// ─── Mock Data ───
-const TRANSACTIONS = [
-  {
-    id: "1",
-    title: "Premium Organic Atelier",
-    category: "Grocery",
-    time: "Today, 11:42 AM",
-    amount: -124.5,
-    icon: "shopping-bag" as const,
-    iconBg: C.primaryFixed,
-    iconColor: C.primary,
-  },
-  {
-    id: "2",
-    title: "Dividend Yield: GreenTech",
-    category: "Investments",
-    time: "Yesterday, 4:00 PM",
-    amount: 3400.0,
-    icon: "payments" as const,
-    iconBg: C.secondaryFixed,
-    iconColor: C.secondary,
-  },
-  {
-    id: "3",
-    title: "The Editorial Kitchen",
-    category: "Dining",
-    time: "Oct 24, 8:15 PM",
-    amount: -86.2,
-    icon: "restaurant" as const,
-    iconBg: C.tertiaryFixed,
-    iconColor: C.tertiary,
-  },
-];
+const getCategoryAppearance = (category: string) => {
+  const cat = category.toLowerCase();
+  if (cat.includes("grocery") || cat.includes("food")) {
+    return { icon: "shopping-bag" as const, iconBg: C.primaryFixed, iconColor: C.primary };
+  }
+  if (cat.includes("invest") || cat.includes("salary") || cat.includes("income") || cat.includes("deposit")) {
+    return { icon: "payments" as const, iconBg: C.secondaryFixed, iconColor: C.secondary };
+  }
+  if (cat.includes("din") || cat.includes("restaurant") || cat.includes("eat")) {
+    return { icon: "restaurant" as const, iconBg: C.tertiaryFixed, iconColor: C.tertiary };
+  }
+  if (cat.includes("transport") || cat.includes("ride")) {
+    return { icon: "directions-car" as const, iconBg: C.surfaceContainerHigh, iconColor: C.onSurfaceVariant };
+  }
+  return { icon: "receipt" as const, iconBg: C.surfaceContainerLowest, iconColor: C.onSurfaceVariant };
+};
+
+function formatCurrency(num: number) {
+  // Extract whole and decimal parts
+  const parts = num.toFixed(2).split(".");
+  const whole = parseInt(parts[0], 10).toLocaleString();
+  return { whole, cents: parts[1] };
+}
 
 export default function HomeScreen() {
+  const { user } = useAuth();
+  const { balance, totalIncome, totalExpense, transactions, goals, insight, isEmpty, isLoading } = useDashboardData();
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={[styles.safeArea, { justifyContent: "center", alignItems: "center" }]} edges={["top"]}>
+        <ActivityIndicator size="large" color={C.primary} />
+        <Text style={{ marginTop: 12, color: C.onSurfaceVariant, fontWeight: "500" }}>Loading Dashboard...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  const { whole: balanceWhole, cents: balanceCents } = formatCurrency(Math.abs(balance));
+  
+  // Calculate flow tracks width securely
+  const totalFlow = totalIncome + totalExpense || 1;
+  const incomeWidth = Math.min(100, Math.max(5, (totalIncome / totalFlow) * 100));
+  const expenseWidth = Math.min(100, Math.max(5, (totalExpense / totalFlow) * 100));
+
+  const activeGoal = goals.length > 0 ? goals[0] : null;
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
       <ScrollView
@@ -92,12 +105,18 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <View style={styles.avatarWrap}>
-              <Image
-                source={{ uri: "https://i.pravatar.cc/100?img=11" }}
-                style={styles.avatar}
-              />
+              {user?.photoUrl ? (
+                <Image
+                  source={{ uri: user.photoUrl }}
+                  style={styles.avatar}
+                />
+              ) : (
+                <View style={[styles.avatar, { alignItems: "center", justifyContent: "center", backgroundColor: C.surfaceContainerHigh }]}>
+                  <MaterialIcons name="person" size={22} color={C.onSurfaceVariant} />
+                </View>
+              )}
             </View>
-            <Text style={styles.brandName}>Editorial Intelligence</Text>
+            <Text style={styles.brandName}>{user?.name?.split(" ")[0] || "Editorial Intelligence"}</Text>
           </View>
           <TouchableOpacity activeOpacity={0.7} style={styles.headerAction}>
             <MaterialIcons name="auto-awesome" size={24} color={C.primary} />
@@ -111,15 +130,15 @@ export default function HomeScreen() {
             <Text style={styles.statusLabel}>Portfolio Excellence</Text>
           </View>
           <Text style={styles.heroAmount}>
-            $142,580<Text style={styles.heroCents}>.42</Text>
+            {balance < 0 ? "-" : ""}Rp {balanceWhole}<Text style={styles.heroCents}>.{balanceCents}</Text>
           </Text>
           <View style={styles.badgeRow}>
             <View style={styles.badgeGreen}>
-              <MaterialIcons name="trending-up" size={14} color={C.onPrimaryFixedVariant} />
-              <Text style={styles.badgeGreenText}>+12.4% this month</Text>
+              <MaterialIcons name="receipt-long" size={14} color={C.onPrimaryFixedVariant} />
+              <Text style={styles.badgeGreenText}>{transactions.length} Total Entries</Text>
             </View>
             <View style={styles.badgeNeutral}>
-              <Text style={styles.badgeNeutralText}>Last sync: 2m ago</Text>
+              <Text style={styles.badgeNeutralText}>Live Sync</Text>
             </View>
           </View>
         </View>
@@ -137,14 +156,14 @@ export default function HomeScreen() {
               <Text style={styles.aiLabel}>INTELLIGENCE FRAGMENT</Text>
             </View>
             <Text style={styles.aiHeadline}>
-              Your grocery spending is 15% lower than your average Atelier profile.
+              {insight ? "New actionable insight available based on your data." : (isEmpty ? "Start adding transactions to receive AI insights." : "Activity monitoring active.")}
             </Text>
             <Text style={styles.aiBody}>
-              Redirect the $240 surplus into your "High-Yield Growth" goal for optimal alignment.
+              {insight?.content || (isEmpty ? "Your personal financial assistant is waiting for your first entries." : "No new deep insights right now. Keep logging your budget!")}
             </Text>
             <View style={styles.aiButtonWrap}>
               <View style={styles.aiButton}>
-                <Text style={styles.aiButtonText}>Execute Recommendation</Text>
+                <Text style={styles.aiButtonText}>{insight ? "Review Insight" : "Explore Feature"}</Text>
               </View>
             </View>
           </LinearGradient>
@@ -155,20 +174,20 @@ export default function HomeScreen() {
           {/* Inflow */}
           <View style={[styles.flowCard, styles.elevation]}>
             <Text style={styles.flowLabel}>INFLOW</Text>
-            <Text style={styles.flowAmount}>$4,250</Text>
+            <Text style={styles.flowAmount}>Rp {formatCurrency(totalIncome).whole}</Text>
             <View style={styles.progressTrack}>
-              <View style={[styles.progressFill, { width: "75%", backgroundColor: C.primary }]} />
+              <View style={[styles.progressFill, { width: `${isEmpty ? 0 : incomeWidth}%`, backgroundColor: C.primary }]} />
             </View>
-            <Text style={styles.flowMeta}>75% of Daily Target met</Text>
+            <Text style={styles.flowMeta}>{isEmpty ? "Track first income" : "Calculated correctly"}</Text>
           </View>
           {/* Outflow */}
           <View style={[styles.flowCard, styles.elevation]}>
             <Text style={styles.flowLabel}>OUTFLOW</Text>
-            <Text style={styles.flowAmount}>$842</Text>
+            <Text style={styles.flowAmount}>Rp {formatCurrency(totalExpense).whole}</Text>
             <View style={styles.progressTrack}>
-              <View style={[styles.progressFill, { width: "40%", backgroundColor: C.secondary }]} />
+              <View style={[styles.progressFill, { width: `${isEmpty ? 0 : expenseWidth}%`, backgroundColor: C.secondary }]} />
             </View>
-            <Text style={styles.flowMeta}>Conservative trend identified</Text>
+            <Text style={styles.flowMeta}>{isEmpty ? "Setup a budget" : "Tracked perfectly"}</Text>
           </View>
         </View>
 
@@ -180,37 +199,48 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
-        <View style={[styles.ledgerWrap, styles.elevation]}>
-          {TRANSACTIONS.map((tx, idx) => (
-            <TouchableOpacity
-              key={tx.id}
-              activeOpacity={0.8}
-              style={[
-                styles.txRow,
-                idx < TRANSACTIONS.length - 1 && styles.txRowBorder,
-              ]}
-            >
-              <View style={[styles.txIcon, { backgroundColor: tx.iconBg }]}>
-                <MaterialIcons name={tx.icon} size={22} color={tx.iconColor} />
-              </View>
-              <View style={styles.txInfo}>
-                <Text style={styles.txTitle} numberOfLines={1}>
-                  {tx.title}
-                </Text>
-                <Text style={styles.txMeta}>
-                  {tx.category} • {tx.time}
-                </Text>
-              </View>
-              <Text
-                style={[
-                  styles.txAmount,
-                  { color: tx.amount > 0 ? C.primary : C.onSurface },
-                ]}
-              >
-                {tx.amount > 0 ? "+" : ""}${Math.abs(tx.amount).toFixed(2)}
-              </Text>
-            </TouchableOpacity>
-          ))}
+        <View style={[styles.ledgerWrap, isEmpty ? {} : styles.elevation]}>
+          {isEmpty ? (
+            <View style={{ paddingVertical: 20, alignItems: "center" }}>
+              <Text style={{ color: C.onSurfaceVariant, fontSize: 13, fontWeight: "500" }}>No transactions yet.</Text>
+            </View>
+          ) : (
+            transactions.slice(0, 5).map((tx, idx) => {
+              const appearance = getCategoryAppearance(tx.category);
+              const txDate = new Date(tx.createdAt).toLocaleDateString();
+              
+              return (
+                <TouchableOpacity
+                  key={tx._id}
+                  activeOpacity={0.8}
+                  style={[
+                    styles.txRow,
+                    idx < Math.min(transactions.length, 5) - 1 && styles.txRowBorder,
+                  ]}
+                >
+                  <View style={[styles.txIcon, { backgroundColor: appearance.iconBg }]}>
+                    <MaterialIcons name={appearance.icon} size={22} color={appearance.iconColor} />
+                  </View>
+                  <View style={styles.txInfo}>
+                    <Text style={styles.txTitle} numberOfLines={1}>
+                      {tx.note || tx.category}
+                    </Text>
+                    <Text style={styles.txMeta}>
+                      {tx.category} • {txDate}
+                    </Text>
+                  </View>
+                  <Text
+                    style={[
+                      styles.txAmount,
+                      { color: tx.type === "income" ? C.primary : C.onSurface },
+                    ]}
+                  >
+                    {tx.type === "income" ? "+" : "-"}Rp {formatCurrency(Math.abs(tx.amount)).whole}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })
+          )}
         </View>
 
         {/* ━━━ GOAL TRACKING ━━━ */}
@@ -218,21 +248,27 @@ export default function HomeScreen() {
           <Text style={styles.sectionTitle}>Active Quest</Text>
         </View>
 
-        <TouchableOpacity activeOpacity={0.9} style={[styles.goalCard, styles.elevation]}>
-          <Text style={styles.goalLabel}>ACTIVE QUEST</Text>
-          <Text style={styles.goalTitle}>New York Atelier Studio</Text>
-          <View style={styles.goalProgressSection}>
-            <Text style={styles.goalProgressText}>$42,000 / $150,000</Text>
-            <View style={styles.goalTrack}>
-              <LinearGradient
-                colors={[C.primary, C.primaryContainer]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={[styles.goalFill, { width: "28%" }]}
-              />
+        {activeGoal ? (
+          <TouchableOpacity activeOpacity={0.9} style={[styles.goalCard, styles.elevation]}>
+            <Text style={styles.goalLabel}>ACTIVE QUEST</Text>
+            <Text style={styles.goalTitle}>{activeGoal.title}</Text>
+            <View style={styles.goalProgressSection}>
+              <Text style={styles.goalProgressText}>Rp {formatCurrency(activeGoal.currentAmount).whole} / Rp {formatCurrency(activeGoal.targetAmount).whole}</Text>
+              <View style={styles.goalTrack}>
+                <LinearGradient
+                  colors={[C.primary, C.primaryContainer]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={[styles.goalFill, { width: `${Math.min(100, Math.max(0, (activeGoal.currentAmount / activeGoal.targetAmount) * 100))}%` }]}
+                />
+              </View>
             </View>
+          </TouchableOpacity>
+        ) : (
+          <View style={{ padding: 12, alignItems: "center" }}>
+            <Text style={{ color: C.onSurfaceVariant, fontSize: 13, fontWeight: "500" }}>No goals created yet.</Text>
           </View>
-        </TouchableOpacity>
+        )}
 
         {/* Manifest New Goal */}
         <TouchableOpacity activeOpacity={0.8} style={styles.newGoalCard}>
@@ -246,12 +282,12 @@ export default function HomeScreen() {
       {/* ━━━ FLOATING AI BUTTON ━━━ */}
       <TouchableOpacity activeOpacity={0.85} style={styles.fab}>
         <LinearGradient
-          colors={[C.primary, C.primaryContainer]}
+          colors={[C.primary, C.primaryFixedDim]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.fabGradient}
         >
-          <MaterialCommunityIcons name="forum" size={26} color="#fff" />
+          <MaterialIcons name="smart-toy" size={26} color="#fff" />
         </LinearGradient>
       </TouchableOpacity>
     </SafeAreaView>

@@ -32,3 +32,35 @@ export const getUser = query({
     return user;
   },
 });
+
+/**
+ * Generate an upload URL for file storage
+ */
+export const generateUploadUrl = mutation(async (ctx) => {
+  return await ctx.storage.generateUploadUrl();
+});
+
+/**
+ * Updates a user's photo using a storage ID
+ */
+export const updatePhoto = mutation({
+  args: {
+    userId: v.id("users"),
+    storageId: v.optional(v.id("_storage")),
+    photoUrlToSave: v.optional(v.string())
+  },
+  handler: async (ctx, args) => {
+    let newPhotoUrl = args.photoUrlToSave;
+
+    // If a storage ID is provided, it means a file was uploaded, resolve its URL
+    if (args.storageId) {
+      newPhotoUrl = await ctx.storage.getUrl(args.storageId) || undefined;
+    }
+
+    if (newPhotoUrl) {
+      await ctx.db.patch(args.userId, { photoUrl: newPhotoUrl });
+    }
+    
+    return newPhotoUrl;
+  },
+});

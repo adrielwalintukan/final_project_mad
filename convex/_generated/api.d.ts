@@ -8,7 +8,9 @@
  * @module
  */
 
+import type * as aiLogs from "../aiLogs.js";
 import type * as auth from "../auth.js";
+import type * as budgets from "../budgets.js";
 import type * as goals from "../goals.js";
 import type * as http from "../http.js";
 import type * as insights from "../insights.js";
@@ -22,7 +24,9 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  aiLogs: typeof aiLogs;
   auth: typeof auth;
+  budgets: typeof budgets;
   goals: typeof goals;
   http: typeof http;
   insights: typeof insights;
