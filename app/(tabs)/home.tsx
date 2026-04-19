@@ -1,5 +1,6 @@
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import React from "react";
 import {
   ActivityIndicator,
@@ -76,6 +77,7 @@ function formatCurrency(num: number) {
 
 export default function HomeScreen() {
   const { user } = useAuth();
+  const router = useRouter();
   const { t } = useLanguage();
   const { balance, totalIncome, totalExpense, transactions, goals, insight, isEmpty, isLoading } = useDashboardData();
 
@@ -282,7 +284,7 @@ export default function HomeScreen() {
       </ScrollView>
 
       {/* ━━━ FLOATING AI BUTTON ━━━ */}
-      <TouchableOpacity activeOpacity={0.85} style={styles.fab}>
+      <TouchableOpacity activeOpacity={0.85} style={styles.fab} onPress={() => router.push('/aiChat')}>
         <LinearGradient
           colors={[C.primary, C.primaryFixedDim]}
           start={{ x: 0, y: 0 }}

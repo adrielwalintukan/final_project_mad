@@ -1,4 +1,4 @@
-import { Slot } from "expo-router";
+import { Stack } from "expo-router";
 import { AppConvexProvider } from "../lib/convexClient";
 import { AuthProvider } from "../context/AuthContext";
 import { LanguageProvider } from "../context/LanguageContext";
@@ -8,7 +8,10 @@ export default function RootLayout() {
     <AppConvexProvider>
       <AuthProvider>
         <LanguageProvider>
-          <Slot />
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="ai-chat" options={{ presentation: "modal" }} />
+          </Stack>
         </LanguageProvider>
       </AuthProvider>
     </AppConvexProvider>
