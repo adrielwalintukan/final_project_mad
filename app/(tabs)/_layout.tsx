@@ -1,8 +1,11 @@
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import { Platform, StyleSheet, View } from "react-native";
+import { useLanguage } from "../../context/LanguageContext";
 
 export default function TabsLayout() {
+  const { t } = useLanguage();
+
   return (
     <Tabs
       screenOptions={{
@@ -17,7 +20,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          title: "Home",
+          title: t("home"),
           tabBarIcon: ({ color, focused }) => (
             <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
               <Ionicons
@@ -33,7 +36,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="history"
         options={{
-          title: "History",
+          title: t("history"),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? "time" : "time-outline"}
@@ -47,7 +50,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="insights"
         options={{
-          title: "Insights",
+          title: t("insights"),
           tabBarIcon: ({ color, focused }) => (
             <MaterialIcons
               name={focused ? "lightbulb" : "lightbulb-outline"}
@@ -61,10 +64,23 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="goals"
         options={{
-          title: "Goals",
+          title: t("goals"),
           tabBarIcon: ({ color, focused }) => (
             <MaterialIcons
               name="track-changes"
+              size={22}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: t("profile"),
+          tabBarIcon: ({ color, focused }) => (
+            <MaterialIcons
+              name={focused ? "person" : "person-outline"}
               size={22}
               color={color}
             />
