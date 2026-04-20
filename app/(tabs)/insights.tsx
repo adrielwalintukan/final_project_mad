@@ -3,13 +3,17 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Platform, 
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useAuth } from "../../context/AuthContext";
+import { useLanguage } from "../../context/LanguageContext";
 import { Id } from "../../convex/_generated/dataModel";
 
 export default function InsightsScreen() {
+  const router = useRouter();
   const { user } = useAuth();
+  const { t } = useLanguage();
   const userId = user?._id as Id<"users">;
 
   const dashboardData = useQuery(api.insights.getInsightsDashboardData, userId ? { userId } : "skip");
@@ -49,25 +53,25 @@ export default function InsightsScreen() {
         {/* Hero Section */}
         <View style={styles.heroSection}>
           <View style={styles.badge}>
-            <Text style={styles.badgeText}>FINANCIAL ATELIER INSIGHT</Text>
+            <Text style={styles.badgeText}>{t("atelier_insight")}</Text>
           </View>
-          <Text style={styles.heroTitle}>Your wealth is breathing.</Text>
+          <Text style={styles.heroTitle}>{t("wealth_breathing")}</Text>
           <Text style={styles.heroSubtitle}>
-            Intelligence reveals that your optimized micro-investments have outperformed standard savings by <Text style={styles.heroSubtitleHighlight}>{dashboardData?.performancePercentage}%</Text> this month.
+            {t("intelligence_reveals")}<Text style={styles.heroSubtitleHighlight}>{dashboardData?.performancePercentage}%</Text>{t("this_month")}
           </Text>
         </View>
 
         {/* Spending Analysis Card */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Spending Analysis</Text>
-          <Text style={styles.cardSubtitle}>Curated allocation of capital</Text>
+          <Text style={styles.cardTitle}>{t("spending_analysis")}</Text>
+          <Text style={styles.cardSubtitle}>{t("curated_allocation")}</Text>
 
           <View style={styles.spendingRow}>
             {/* Donut representation */}
             <View style={styles.donutCircle}>
               <View style={styles.donutInner}>
                  <Text style={styles.donutTotal}>${dashboardData?.spendingMetrics.total.toLocaleString()}</Text>
-                 <Text style={styles.donutLabel}>TOTAL</Text>
+                 <Text style={styles.donutLabel}>{t("total")}</Text>
               </View>
               {/* Pseudo arcs using CSS rotated semi-circles */}
               <View style={[styles.arc, styles.arcLifestyle]} />
@@ -77,14 +81,19 @@ export default function InsightsScreen() {
 
             {/* Legend */}
             <View style={styles.legendContainer}>
-              {dashboardData?.spendingMetrics.breakdown.map((item: any, idx: number) => (
-                <LegendItem 
-                  key={idx} 
-                  color={item.color} 
-                  label={item.label} 
-                  amount={`$${item.amount.toLocaleString()}`} 
-                />
-              ))}
+              {dashboardData?.spendingMetrics.breakdown.map((item: any, idx: number) => {
+                let transKey = item.label.toLowerCase() as any;
+                if (transKey.includes("essential")) transKey = "essentials";
+                
+                return (
+                  <LegendItem 
+                    key={idx} 
+                    color={item.color} 
+                    label={t(transKey)} 
+                    amount={`$${item.amount.toLocaleString()}`} 
+                  />
+                );
+              })}
             </View>
           </View>
         </View>
@@ -92,39 +101,70 @@ export default function InsightsScreen() {
         {/* AI Growth Insight Card */}
         <View style={[styles.card, styles.liquidityCard]}>
           <MaterialIcons name="lightbulb" size={32} color="#000767" style={{ marginBottom: 12 }} />
-          <Text style={styles.liquidityTitle}>You have ${dashboardData?.idleLiquidity.amount} in idle liquidity.</Text>
+          <Text style={styles.liquidityTitle}>{t("you_have")}{dashboardData?.idleLiquidity.amount}{t("in_idle_liquidity")}</Text>
           <Text style={styles.liquiditySubtitle}>
-            Your "Financial Atelier" recommends moving this to the {dashboardData?.idleLiquidity.recommendation} today for a projected {dashboardData?.idleLiquidity.projectedGain}% gain by Friday.
+            {t("atelier_recommends")}{dashboardData?.idleLiquidity.recommendation}{t("today_for_projected")}{dashboardData?.idleLiquidity.projectedGain}{t("gain_by_friday")}
           </Text>
           <TouchableOpacity activeOpacity={0.8}>
             <LinearGradient colors={["#0d631b", "#2e7d32"]} style={styles.optimizeBtn}>
-              <Text style={styles.optimizeBtnText}>Optimize Now</Text>
+              <Text style={styles.optimizeBtnText}>{t("optimize_now")}</Text>
             </LinearGradient>
           </TouchableOpacity>
         </View>
 
         {/* Micro-Income Cards */}
         <View style={styles.microIncomeGrid}>
-          {dashboardData?.microIncomes.map((item: any) => (
-            <MicroCard 
-              key={item.id}
-              icon={item.icon} 
-              iconBg={item.iconBg} 
-              iconColor={item.iconColor} 
-              percent={item.percent} 
-              percentColor={item.percentColor} 
-              title={item.title} 
-              subtitle={item.subtitle} 
-              amount={`$${item.amount.toFixed(2)}`} 
-            />
-          ))}
+          {dashboardData?.microIncomes.map((item: any) => {
+            const getTitle = (id: string) => {
+              if (id === "tail") return t("affiliate_tail");
+              if (id === "staking") return t("staking_rewards");
+              if (id === "reit") return t("fractional_reit");
+              return item.title;
+            };
+            const getSubtitle = (id: string) => {
+              if (id === "tail") return t("passive_micro_income");
+              if (id === "staking") return t("automated_yield");
+              if (id === "reit") return t("digital_property");
+              return item.subtitle;
+            };
+
+            return (
+              <MicroCard 
+                key={item.id}
+                icon={item.icon} 
+                iconBg={item.iconBg} 
+                iconColor={item.iconColor} 
+                percent={item.percent === "Stable" ? t("stable" as any) : item.percent} 
+                percentColor={item.percentColor} 
+                title={getTitle(item.id)} 
+                subtitle={getSubtitle(item.id)} 
+                amount={`$${item.amount.toFixed(2)}`} 
+              />
+            );
+          })}
         </View>
 
         {/* Spacer for bottom tab and fab */}
         <View style={{ height: 120 }} />
       </ScrollView>
 
-      {/* Floating Action Button */}
+      {/* Floating Add Transaction Button */}
+      <TouchableOpacity 
+        style={[styles.fab, styles.addFab]} 
+        activeOpacity={0.85}
+        onPress={() => router.push("/addTransaction")}
+      >
+        <LinearGradient 
+          colors={["#0d631b", "#88d982"]} 
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.fabGradient}
+        >
+          <MaterialIcons name="add" size={28} color="#ffffff" />
+        </LinearGradient>
+      </TouchableOpacity>
+
+      {/* Floating AI Button */}
       <TouchableOpacity style={styles.fab} activeOpacity={0.85}>
         <LinearGradient 
           colors={["#0d631b", "#88d982"]} 
@@ -435,6 +475,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.35,
     shadowRadius: 16,
     elevation: 12,
+  },
+  addFab: {
+    bottom: Platform.OS === "ios" ? 180 : 160,
   },
   fabGradient: {
     width: 60,

@@ -1,5 +1,6 @@
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import React from "react";
 import {
   ActivityIndicator,
@@ -75,6 +76,7 @@ function formatCurrency(num: number) {
 }
 
 export default function HomeScreen() {
+  const router = useRouter();
   const { user } = useAuth();
   const { t } = useLanguage();
   const { balance, totalIncome, totalExpense, transactions, goals, insight, isEmpty, isLoading } = useDashboardData();
@@ -131,7 +133,11 @@ export default function HomeScreen() {
             <View style={styles.dot} />
             <Text style={styles.statusLabel}>{t("portfolio_excellence")}</Text>
           </View>
-          <Text style={styles.heroAmount}>
+          <Text 
+            style={styles.heroAmount}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+          >
             {balance < 0 ? "-" : ""}Rp {balanceWhole}<Text style={styles.heroCents}>.{balanceCents}</Text>
           </Text>
           <View style={styles.badgeRow}>
@@ -176,7 +182,13 @@ export default function HomeScreen() {
           {/* Inflow */}
           <View style={[styles.flowCard, styles.elevation]}>
             <Text style={styles.flowLabel}>{t("inflow")}</Text>
-            <Text style={styles.flowAmount}>Rp {formatCurrency(totalIncome).whole}</Text>
+            <Text 
+              style={styles.flowAmount}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+            >
+              Rp {formatCurrency(totalIncome).whole}
+            </Text>
             <View style={styles.progressTrack}>
               <View style={[styles.progressFill, { width: `${isEmpty ? 0 : incomeWidth}%`, backgroundColor: C.primary }]} />
             </View>
@@ -185,7 +197,13 @@ export default function HomeScreen() {
           {/* Outflow */}
           <View style={[styles.flowCard, styles.elevation]}>
             <Text style={styles.flowLabel}>{t("outflow")}</Text>
-            <Text style={styles.flowAmount}>Rp {formatCurrency(totalExpense).whole}</Text>
+            <Text 
+              style={styles.flowAmount}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+            >
+              Rp {formatCurrency(totalExpense).whole}
+            </Text>
             <View style={styles.progressTrack}>
               <View style={[styles.progressFill, { width: `${isEmpty ? 0 : expenseWidth}%`, backgroundColor: C.secondary }]} />
             </View>
@@ -280,6 +298,22 @@ export default function HomeScreen() {
           <Text style={styles.newGoalText}>{t("manifest_goal")}</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* ━━━ FLOATING ADD BUTTON ━━━ */}
+      <TouchableOpacity 
+        activeOpacity={0.85} 
+        style={[styles.fab, styles.addFab]} 
+        onPress={() => router.push("/addTransaction")}
+      >
+        <LinearGradient
+          colors={[C.primary, C.primaryFixedDim]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.fabGradient}
+        >
+          <MaterialIcons name="add" size={28} color="#fff" />
+        </LinearGradient>
+      </TouchableOpacity>
 
       {/* ━━━ FLOATING AI BUTTON ━━━ */}
       <TouchableOpacity activeOpacity={0.85} style={styles.fab}>
@@ -654,6 +688,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.35,
     shadowRadius: 16,
     elevation: 12,
+  },
+  addFab: {
+    bottom: Platform.OS === "ios" ? 180 : 160,
   },
   fabGradient: {
     width: 60,
