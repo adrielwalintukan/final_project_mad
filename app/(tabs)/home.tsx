@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import React from "react";
 import {
   ActivityIndicator,
+  Alert,
   Dimensions,
   Image,
   Platform,
@@ -17,6 +18,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../context/AuthContext";
 import { useLanguage } from "../../context/LanguageContext";
 import { useDashboardData } from "../../hooks/useDashboardData";
+import { useFinancialSummary } from "../../hooks/useFinancialSummary";
+import { generateSmartFinancialInsight } from "../../services/gemini";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import { Id } from "../../convex/_generated/dataModel";
 
 const { width } = Dimensions.get("window");
 
@@ -75,11 +81,56 @@ function formatCurrency(num: number) {
   return { whole, cents: parts[1] };
 }
 
+function translateCategory(category: string, t: any) {
+  const normalized = category.toLowerCase();
+  const key = normalized === "other" ? "other_income" : normalized;
+  return t(key) || category;
+}
+
 export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { t } = useLanguage();
-  const { balance, totalIncome, totalExpense, transactions, goals, insight, isEmpty, isLoading } = useDashboardData();
+  const { balance, totalIncome, totalExpense, transactions, goals, isEmpty, isLoading } = useDashboardData();
+  
+  const summaryData = useFinancialSummary(transactions);
+  
+  const aiLogsRaw = useQuery(api.aiLogs.getAiLogs, user?._id ? { userId: user._id as Id<"users">, type: "daily_insight", limit: 1 } : "skip");
+  const latestAiLog = aiLogsRaw?.[0];
+  const saveAiLog = useMutation(api.aiLogs.saveAiLog);
+ 
+   const [isGeneratingAi, setIsGeneratingAi] = React.useState(false);
+   const [aiError, setAiError] = React.useState<string | null>(null);
+ 
+   // Helper inside component to trigger Gemini
+   const handleRefreshInsight = async () => {
+     if (isEmpty || !user?._id) return;
+     setIsGeneratingAi(true);
+     setAiError(null);
+     try {
+       const result = await generateSmartFinancialInsight(summaryData, transactions);
+       await saveAiLog({
+         userId: user._id as Id<"users">,
+         type: "daily_insight",
+         prompt: "Auto-generated from transaction summary.",
+         response: result,
+       });
+     } catch (error: any) {
+       console.warn("Home AI Insight Error:", error);
+       setAiError("Analisis sedang sibuk. Silakan coba beberapa saat lagi.");
+     } finally {
+       setIsGeneratingAi(false);
+     }
+   };
+
+  // Auto-generate if no log exists and the user has transactions
+  React.useEffect(() => {
+    if (!isLoading && !isEmpty && user?._id && aiLogsRaw && aiLogsRaw.length === 0) {
+      if (!isGeneratingAi) {
+         handleRefreshInsight();
+      }
+    }
+  }, [isLoading, isEmpty, user?._id, aiLogsRaw]);
 
   if (isLoading) {
     return (
@@ -90,7 +141,40 @@ export default function HomeScreen() {
     );
   }
 
+  // Safely parse AI JSON response
+  let aiData = { message: "", suggestedAction: "none", actionLabel: "" };
+  if (latestAiLog?.response) {
+    try {
+      const parsed = JSON.parse(latestAiLog.response);
+      aiData = {
+        message: parsed.message || latestAiLog.response,
+        suggestedAction: parsed.suggestedAction || "none",
+        actionLabel: parsed.actionLabel || "",
+      };
+    } catch {
+      // Fallback for older plain text strings
+      aiData.message = latestAiLog.response;
+    }
+  }
+
   const { whole: balanceWhole, cents: balanceCents } = formatCurrency(Math.abs(balance));
+  
+  // Handlers for dynamic AI CTAs
+  const handleAiAction = () => {
+    switch(aiData.suggestedAction) {
+      case "create_budget":
+        Alert.alert("Coming Soon", "Fitur pembuatan budget sedang dalam pengembangan.");
+        break;
+      case "add_transaction":
+        router.push("/addTransaction");
+        break;
+      case "view_goals":
+        router.push("/goals");
+        break;
+      default:
+        break;
+    }
+  };
 
   // Calculate flow tracks width securely
   const totalFlow = totalIncome + totalExpense || 1;
@@ -152,30 +236,94 @@ export default function HomeScreen() {
         </View>
 
         {/* ━━━ AI INSIGHT CARD ━━━ */}
-        <TouchableOpacity activeOpacity={0.92} style={styles.aiCard}>
+        <View style={[styles.aiCard, styles.elevation]}>
           <LinearGradient
-            colors={["#ffd9e2", "#ffe8ed"]}
+            colors={["#ffffff", "#f3f4f5"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={styles.aiGradient}
+            style={[styles.aiGradient, { padding: 20, borderRadius: 24 }]}
           >
-            <View style={styles.aiLabelRow}>
-              <MaterialIcons name="lightbulb" size={18} color={C.onTertiaryFixed} />
-              <Text style={styles.aiLabel}>{t("intelligence_fragment")}</Text>
-            </View>
-            <Text style={styles.aiHeadline}>
-              {insight ? t("new_insight_available") : (isEmpty ? t("start_adding_tx") : t("activity_monitoring"))}
-            </Text>
-            <Text style={styles.aiBody}>
-              {insight?.content || (isEmpty ? t("assistant_waiting") : t("no_new_insights"))}
-            </Text>
-            <View style={styles.aiButtonWrap}>
-              <View style={styles.aiButton}>
-                <Text style={styles.aiButtonText}>{insight ? t("review_insight") : t("explore_feature")}</Text>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: C.primaryFixed, justifyContent: "center", alignItems: "center", marginRight: 10 }}>
+                  <MaterialIcons name="auto-awesome" size={18} color={C.primary} />
+                </View>
+                <View>
+                  <Text style={{ fontSize: 16, fontWeight: "800", color: C.onSurface }}>AI Insight Today</Text>
+                  <Text style={{ fontSize: 11, fontWeight: "600", color: C.onSurfaceVariant, textTransform: "uppercase", letterSpacing: 0.5 }}>Personal financial analysis</Text>
+                </View>
               </View>
+              
+              {!isEmpty && (
+                <TouchableOpacity onPress={handleRefreshInsight} disabled={isGeneratingAi} activeOpacity={0.7} style={{ padding: 4 }}>
+                  <MaterialIcons name="refresh" size={22} color={isGeneratingAi ? C.outlineVariant : C.primary} />
+                </TouchableOpacity>
+              )}
             </View>
+
+            {isEmpty ? (
+              <View style={{ paddingVertical: 10 }}>
+                <Text style={{ fontSize: 14, color: C.onSurfaceVariant, lineHeight: 22, marginBottom: 16 }}>
+                  Start adding transactions to receive personalized AI insights.
+                </Text>
+                <TouchableOpacity 
+                   onPress={() => router.push("/addTransaction")}
+                   style={{ backgroundColor: C.primaryContainer, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12, alignSelf: "flex-start" }}>
+                  <Text style={{ color: C.onPrimary, fontWeight: "700", fontSize: 13 }}>Add Transaction</Text>
+                </TouchableOpacity>
+              </View>
+            ) : isGeneratingAi ? (
+              <View style={{ paddingVertical: 16, alignItems: "center", justifyContent: "center", gap: 12, minHeight: 80 }}>
+                 <ActivityIndicator size="small" color={C.primary} />
+                 <Text style={{ fontSize: 13, color: C.outline }}>Menganalisis pengeluaran Anda...</Text>
+              </View>
+            ) : aiError ? (
+              <View style={{ paddingVertical: 16, alignItems: "center", justifyContent: "center", gap: 8, minHeight: 80 }}>
+                 <MaterialIcons name="cloud-off" size={24} color={C.outline} />
+                 <Text style={{ fontSize: 13, color: C.onSurfaceVariant, textAlign: "center" }}>{aiError}</Text>
+                 <TouchableOpacity 
+                   onPress={handleRefreshInsight}
+                   style={{ marginTop: 8, backgroundColor: C.surfaceContainerHigh, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8 }}
+                 >
+                   <Text style={{ fontSize: 12, fontWeight: "700", color: C.primary }}>Coba Lagi</Text>
+                 </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={{ paddingTop: 4 }}>
+                <Text style={{ fontSize: 14, color: C.onSurfaceVariant, lineHeight: 22 }}>
+                  {aiData.message || "No insight available yet. Tap the refresh icon to generate one."}
+                </Text>
+                
+                {aiData.suggestedAction !== "none" && aiData.actionLabel && (
+                  <TouchableOpacity 
+                    onPress={handleAiAction}
+                    activeOpacity={0.7}
+                    style={{
+                      marginTop: 14,
+                      alignSelf: "flex-start",
+                      paddingVertical: 8,
+                      paddingHorizontal: 16,
+                      borderRadius: 12,
+                      borderWidth: 1,
+                      borderColor: C.primary,
+                      backgroundColor: C.surfaceContainerLowest,
+                    }}
+                  >
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: C.primary }}>
+                      {aiData.actionLabel}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                {latestAiLog && (
+                  <Text style={{ fontSize: 10, color: C.outline, marginTop: 12, fontStyle: "italic" }}>
+                    Generated on {new Date(latestAiLog.createdAt).toLocaleString()}
+                  </Text>
+                )}
+              </View>
+            )}
           </LinearGradient>
-        </TouchableOpacity>
+        </View>
 
         {/* ━━━ INFLOW / OUTFLOW CARDS ━━━ */}
         <View style={styles.flowRow}>
@@ -243,10 +391,10 @@ export default function HomeScreen() {
                   </View>
                   <View style={styles.txInfo}>
                     <Text style={styles.txTitle} numberOfLines={1}>
-                      {tx.note || tx.category}
+                      {tx.note || translateCategory(tx.category, t)}
                     </Text>
                     <Text style={styles.txMeta}>
-                      {tx.category} • {txDate}
+                      {translateCategory(tx.category, t)} • {txDate}
                     </Text>
                   </View>
                   <Text

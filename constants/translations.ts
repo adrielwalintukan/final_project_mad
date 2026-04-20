@@ -128,6 +128,17 @@ export const translations = {
     ai_settings_msg: "Preferences opened.",
     thank_you: "Thank you!",
     redirect_store: "Redirecting to App Store...",
+    
+    // History Page
+    search: "Search categories or notes...",
+    all: "All",
+    today: "Today",
+    yesterday: "Yesterday",
+    track_in_out: "Track your income and expenses",
+    net_balance: "Net Balance",
+    delete_transaction: "Delete Transaction",
+    delete_confirm_msg: "Are you sure you want to delete this transaction? This action cannot be undone.",
+    delete: "Delete",
   },
   id: {
     // Layout
@@ -258,6 +269,17 @@ export const translations = {
     ai_settings_msg: "Preferensi dibuka.",
     thank_you: "Terima kasih!",
     redirect_store: "Mengarahkan ke App Store...",
+
+    // History Page
+    search: "Cari kategori atau catatan...",
+    all: "Semua",
+    today: "Hari Ini",
+    yesterday: "Kemarin",
+    track_in_out: "Lacak pemasukan dan pengeluaran",
+    net_balance: "Saldo Bersih",
+    delete_transaction: "Hapus Transaksi",
+    delete_confirm_msg: "Apakah Anda yakin ingin menghapus transaksi ini? Tindakan ini tidak dapat dibatalkan.",
+    delete: "Hapus",
   }
 };
 
