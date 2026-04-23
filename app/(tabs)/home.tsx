@@ -206,7 +206,11 @@ export default function HomeScreen() {
             </View>
             <Text style={styles.brandName}>{user?.name?.split(" ")[0] || "Editorial Intelligence"}</Text>
           </View>
-          <TouchableOpacity activeOpacity={0.7} style={styles.headerAction}>
+          <TouchableOpacity 
+            activeOpacity={0.7} 
+            style={styles.headerAction}
+            onPress={() => router.push("/chatbot")}
+          >
             <MaterialIcons name="auto-awesome" size={24} color={C.primary} />
           </TouchableOpacity>
         </View>
@@ -236,62 +240,59 @@ export default function HomeScreen() {
         </View>
 
         {/* ━━━ AI INSIGHT CARD ━━━ */}
-        <View style={[styles.aiCard, styles.elevation]}>
-          <LinearGradient
-            colors={["#ffffff", "#f3f4f5"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.aiGradient, { padding: 20, borderRadius: 24 }]}
-          >
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-              <View style={{ flexDirection: "row", alignItems: "center" }}>
-                <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: C.primaryFixed, justifyContent: "center", alignItems: "center", marginRight: 10 }}>
-                  <MaterialIcons name="auto-awesome" size={18} color={C.primary} />
-                </View>
-                <View>
-                  <Text style={{ fontSize: 16, fontWeight: "800", color: C.onSurface }}>AI Insight Today</Text>
-                  <Text style={{ fontSize: 11, fontWeight: "600", color: C.onSurfaceVariant, textTransform: "uppercase", letterSpacing: 0.5 }}>Personal financial analysis</Text>
-                </View>
+        <View style={styles.aiCard}>
+          <View style={{ backgroundColor: "#fce4ec", borderRadius: 24, padding: 22 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 16 }}>
+              <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: "rgba(136,21,62,0.12)", justifyContent: "center", alignItems: "center", marginRight: 10 }}>
+                <MaterialIcons name="lightbulb" size={16} color="#88153e" />
               </View>
-              
+              <Text style={{ fontSize: 11, fontWeight: "800", color: "#88153e", textTransform: "uppercase", letterSpacing: 1.5 }}>
+                Fragmen Kecerdasan
+              </Text>
               {!isEmpty && (
-                <TouchableOpacity onPress={handleRefreshInsight} disabled={isGeneratingAi} activeOpacity={0.7} style={{ padding: 4 }}>
-                  <MaterialIcons name="refresh" size={22} color={isGeneratingAi ? C.outlineVariant : C.primary} />
+                <TouchableOpacity onPress={handleRefreshInsight} disabled={isGeneratingAi} activeOpacity={0.7} style={{ marginLeft: "auto", padding: 4 }}>
+                  <MaterialIcons name="refresh" size={20} color={isGeneratingAi ? "#d4a0b0" : "#88153e"} />
                 </TouchableOpacity>
               )}
             </View>
 
             {isEmpty ? (
-              <View style={{ paddingVertical: 10 }}>
-                <Text style={{ fontSize: 14, color: C.onSurfaceVariant, lineHeight: 22, marginBottom: 16 }}>
-                  Start adding transactions to receive personalized AI insights.
+              <View>
+                <Text style={{ fontSize: 24, fontWeight: "800", color: "#5a0f2a", lineHeight: 30, marginBottom: 12 }}>
+                  Pemantauan aktivitas aktif.
+                </Text>
+                <Text style={{ fontSize: 15, color: "#88153e", lineHeight: 22, marginBottom: 18, opacity: 0.7 }}>
+                  Belum ada wawasan baru saat ini. Terus catat anggaran Anda!
                 </Text>
                 <TouchableOpacity 
                    onPress={() => router.push("/addTransaction")}
-                   style={{ backgroundColor: C.primaryContainer, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 12, alignSelf: "flex-start" }}>
-                  <Text style={{ color: C.onPrimary, fontWeight: "700", fontSize: 13 }}>Add Transaction</Text>
+                   style={{ backgroundColor: "#ffffff", paddingVertical: 12, paddingHorizontal: 20, borderRadius: 14, alignSelf: "flex-start", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 }}>
+                  <Text style={{ color: "#5a0f2a", fontWeight: "800", fontSize: 14 }}>Tambah Transaksi</Text>
                 </TouchableOpacity>
               </View>
             ) : isGeneratingAi ? (
               <View style={{ paddingVertical: 16, alignItems: "center", justifyContent: "center", gap: 12, minHeight: 80 }}>
-                 <ActivityIndicator size="small" color={C.primary} />
-                 <Text style={{ fontSize: 13, color: C.outline }}>Menganalisis pengeluaran Anda...</Text>
+                 <ActivityIndicator size="small" color="#88153e" />
+                 <Text style={{ fontSize: 13, color: "#88153e", opacity: 0.7 }}>Menganalisis pengeluaran Anda...</Text>
               </View>
             ) : aiError ? (
               <View style={{ paddingVertical: 16, alignItems: "center", justifyContent: "center", gap: 8, minHeight: 80 }}>
-                 <MaterialIcons name="cloud-off" size={24} color={C.outline} />
-                 <Text style={{ fontSize: 13, color: C.onSurfaceVariant, textAlign: "center" }}>{aiError}</Text>
+                 <MaterialIcons name="cloud-off" size={24} color="#d4a0b0" />
+                 <Text style={{ fontSize: 13, color: "#88153e", textAlign: "center", opacity: 0.7 }}>{aiError}</Text>
                  <TouchableOpacity 
                    onPress={handleRefreshInsight}
-                   style={{ marginTop: 8, backgroundColor: C.surfaceContainerHigh, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8 }}
+                   style={{ marginTop: 8, backgroundColor: "#ffffff", paddingVertical: 8, paddingHorizontal: 14, borderRadius: 10 }}
                  >
-                   <Text style={{ fontSize: 12, fontWeight: "700", color: C.primary }}>Coba Lagi</Text>
+                   <Text style={{ fontSize: 12, fontWeight: "700", color: "#88153e" }}>Coba Lagi</Text>
                  </TouchableOpacity>
               </View>
             ) : (
-              <View style={{ paddingTop: 4 }}>
-                <Text style={{ fontSize: 14, color: C.onSurfaceVariant, lineHeight: 22 }}>
-                  {aiData.message || "No insight available yet. Tap the refresh icon to generate one."}
+              <View>
+                <Text style={{ fontSize: 24, fontWeight: "800", color: "#5a0f2a", lineHeight: 30, marginBottom: 12 }}>
+                  Wawasan keuangan Anda.
+                </Text>
+                <Text style={{ fontSize: 15, color: "#88153e", lineHeight: 22, opacity: 0.7, marginBottom: 18 }}>
+                  {aiData.message || "Terus catat anggaran Anda!"}
                 </Text>
                 
                 {aiData.suggestedAction !== "none" && aiData.actionLabel && (
@@ -299,30 +300,32 @@ export default function HomeScreen() {
                     onPress={handleAiAction}
                     activeOpacity={0.7}
                     style={{
-                      marginTop: 14,
                       alignSelf: "flex-start",
-                      paddingVertical: 8,
-                      paddingHorizontal: 16,
-                      borderRadius: 12,
-                      borderWidth: 1,
-                      borderColor: C.primary,
-                      backgroundColor: C.surfaceContainerLowest,
+                      paddingVertical: 12,
+                      paddingHorizontal: 20,
+                      borderRadius: 14,
+                      backgroundColor: "#ffffff",
+                      shadowColor: "#000",
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.06,
+                      shadowRadius: 4,
+                      elevation: 2,
                     }}
                   >
-                    <Text style={{ fontSize: 13, fontWeight: "700", color: C.primary }}>
+                    <Text style={{ fontSize: 14, fontWeight: "800", color: "#5a0f2a" }}>
                       {aiData.actionLabel}
                     </Text>
                   </TouchableOpacity>
                 )}
 
                 {latestAiLog && (
-                  <Text style={{ fontSize: 10, color: C.outline, marginTop: 12, fontStyle: "italic" }}>
+                  <Text style={{ fontSize: 10, color: "#88153e", marginTop: 14, opacity: 0.5, fontStyle: "italic" }}>
                     Generated on {new Date(latestAiLog.createdAt).toLocaleString()}
                   </Text>
                 )}
               </View>
             )}
-          </LinearGradient>
+          </View>
         </View>
 
         {/* ━━━ INFLOW / OUTFLOW CARDS ━━━ */}
@@ -450,7 +453,7 @@ export default function HomeScreen() {
       {/* ━━━ FLOATING ADD BUTTON ━━━ */}
       <TouchableOpacity 
         activeOpacity={0.85} 
-        style={[styles.fab, styles.addFab]} 
+        style={styles.fab} 
         onPress={() => router.push("/addTransaction")}
       >
         <LinearGradient
@@ -460,18 +463,6 @@ export default function HomeScreen() {
           style={styles.fabGradient}
         >
           <MaterialIcons name="add" size={28} color="#fff" />
-        </LinearGradient>
-      </TouchableOpacity>
-
-      {/* ━━━ FLOATING AI BUTTON ━━━ */}
-      <TouchableOpacity activeOpacity={0.85} style={styles.fab}>
-        <LinearGradient
-          colors={[C.primary, C.primaryFixedDim]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.fabGradient}
-        >
-          <MaterialIcons name="smart-toy" size={26} color="#fff" />
         </LinearGradient>
       </TouchableOpacity>
     </SafeAreaView>

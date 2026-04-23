@@ -87,18 +87,27 @@ export default function InsightsScreen() {
               {user?.name?.split(" ")[0] || "Editorial Intelligence"}
             </Text>
           </View>
-          <TouchableOpacity 
-            activeOpacity={0.7} 
-            style={styles.headerRightBtn}
-            onPress={() => generateNewInsight()}
-            disabled={isGenerating}
-          >
-            {isGenerating ? (
-              <ActivityIndicator size="small" color="#0d631b" />
-            ) : (
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <TouchableOpacity 
+              activeOpacity={0.7} 
+              style={[styles.headerRightBtn, { marginRight: 8 }]}
+              onPress={() => router.push("/chatbot")}
+            >
               <MaterialIcons name="auto-awesome" size={24} color="#0d631b" />
-            )}
-          </TouchableOpacity>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              activeOpacity={0.7} 
+              style={styles.headerRightBtn}
+              onPress={() => generateNewInsight()}
+              disabled={isGenerating}
+            >
+              {isGenerating ? (
+                <ActivityIndicator size="small" color="#0d631b" />
+              ) : (
+                <MaterialIcons name="refresh" size={24} color="#0d631b" />
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Hero Section */}
@@ -239,7 +248,7 @@ export default function InsightsScreen() {
 
       {/* Floating Add Transaction Button */}
       <TouchableOpacity
-        style={[styles.fab, styles.addFab]}
+        style={styles.fab}
         activeOpacity={0.85}
         onPress={() => router.push("/addTransaction")}
       >
@@ -250,27 +259,6 @@ export default function InsightsScreen() {
           style={styles.fabGradient}
         >
           <MaterialIcons name="add" size={28} color="#ffffff" />
-        </LinearGradient>
-      </TouchableOpacity>
-
-      {/* Floating AI Button */}
-      <TouchableOpacity 
-        style={styles.fab} 
-        activeOpacity={0.85}
-        onPress={() => generateNewInsight()}
-        disabled={isGenerating}
-      >
-        <LinearGradient
-          colors={["#0d631b", "#88d982"]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.fabGradient}
-        >
-          {isGenerating ? (
-            <ActivityIndicator color="#ffffff" size="small" />
-          ) : (
-            <MaterialIcons name="smart-toy" size={26} color="#ffffff" />
-          )}
         </LinearGradient>
       </TouchableOpacity>
     </SafeAreaView>

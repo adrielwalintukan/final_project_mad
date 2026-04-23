@@ -148,8 +148,13 @@ export default function ProfileScreen() {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>{t("profile")}</Text>
         </View>
-        {/* Empty spacer to balance header */}
-        <View style={{ width: 40 }} />
+        <TouchableOpacity 
+          activeOpacity={0.7} 
+          style={styles.iconButton}
+          onPress={() => router.push("/chatbot")}
+        >
+          <MaterialIcons name="auto-awesome" size={24} color={C.primary} />
+        </TouchableOpacity>
       </View>
       <View style={styles.headerDivider} />
 
@@ -403,18 +408,6 @@ export default function ProfileScreen() {
 
         {/* ━━━ FLOATING AI BUTTON ━━━ */}
       </ScrollView>
-
-      {/* ━━━ FLOATING AI BUTTON ━━━ */}
-      <TouchableOpacity activeOpacity={0.85} style={styles.fab}>
-        <LinearGradient
-          colors={[C.primary, C.primaryFixedDim]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.fabGradient}
-        >
-          <MaterialIcons name="smart-toy" size={26} color="#fff" />
-        </LinearGradient>
-      </TouchableOpacity>
     </SafeAreaView>
   );
 }

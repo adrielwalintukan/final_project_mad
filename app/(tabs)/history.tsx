@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, Animated } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -91,6 +92,8 @@ export default function HistoryScreen() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<"all" | "income" | "expense">("all");
+  const [categoryExpanded, setCategoryExpanded] = useState(false);
+  const CATEGORY_PREVIEW_COUNT = 3;
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter(tx => {
@@ -107,6 +110,37 @@ export default function HistoryScreen() {
       return true;
     });
   }, [transactions, filterType, searchQuery]);
+
+  // Compute category totals for the summary card
+  const categorySummary = useMemo(() => {
+    const map: Record<string, { total: number; type: "income" | "expense" | "mixed"; count: number }> = {};
+    
+    transactions.forEach(tx => {
+      const cat = tx.category;
+      if (!map[cat]) {
+        map[cat] = { total: 0, type: tx.type, count: 0 };
+      }
+      if (tx.type === "expense") {
+        map[cat].total += tx.amount;
+      } else {
+        map[cat].total += tx.amount;
+      }
+      if (map[cat].type !== tx.type) {
+        map[cat].type = "mixed";
+      }
+      map[cat].count += 1;
+    });
+
+    return Object.entries(map)
+      .map(([category, data]) => ({
+        category,
+        total: data.total,
+        type: data.type,
+        count: data.count,
+        ...getCategoryAppearance(category),
+      }))
+      .sort((a, b) => b.total - a.total);
+  }, [transactions]);
 
   const groupedTransactions = useMemo(() => {
     const groups: { title: string, data: typeof transactions }[] = [];
@@ -149,29 +183,133 @@ export default function HistoryScreen() {
           <Text style={styles.headerTitle}>{t("history") || "Transaction History"}</Text>
           <Text style={styles.headerSubtitle}>{t("track_in_out") || "Track your income and expenses"}</Text>
         </View>
+        <TouchableOpacity 
+          activeOpacity={0.7} 
+          onPress={() => router.push("/chatbot")}
+          style={{ padding: 8 }}
+        >
+          <MaterialIcons name="auto-awesome" size={24} color={C.primary} />
+        </TouchableOpacity>
       </View>
+
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
       {/* ━━━ SUMMARY CARDS ━━━ */}
       <View style={styles.summaryRow}>
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryLabel}>{t("net_balance") || "Net Balance"}</Text>
-          <Text style={[styles.summaryValue, { color: C.onSurface }]} numberOfLines={1} adjustsFontSizeToFit>
+        <View style={[styles.summaryCard, { borderLeftWidth: 3, borderLeftColor: C.onSurface }]}>
+          <View style={styles.summaryCardHeader}>
+            <View style={[styles.summaryIconWrap, { backgroundColor: C.surfaceContainerHigh }]}>
+              <MaterialIcons name="account-balance-wallet" size={16} color={C.onSurface} />
+            </View>
+          </View>
+          <Text style={styles.summaryLabel} numberOfLines={1}>Saldo</Text>
+          <Text style={[styles.summaryValue, { color: balance >= 0 ? C.primary : C.error }]} numberOfLines={1} adjustsFontSizeToFit>
             {balance < 0 ? "-" : ""}Rp {formatCurrency(Math.abs(balance)).whole}
           </Text>
         </View>
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryLabel}>{t("inflow") || "Income"}</Text>
+        <View style={[styles.summaryCard, { borderLeftWidth: 3, borderLeftColor: C.primary }]}>
+          <View style={styles.summaryCardHeader}>
+            <View style={[styles.summaryIconWrap, { backgroundColor: C.primaryFixed }]}>
+              <MaterialIcons name="trending-up" size={16} color={C.primary} />
+            </View>
+          </View>
+          <Text style={styles.summaryLabel} numberOfLines={1}>Masuk</Text>
           <Text style={[styles.summaryValue, { color: C.primary }]} numberOfLines={1} adjustsFontSizeToFit>
             Rp {formatCurrency(totalIncome).whole}
           </Text>
         </View>
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryLabel}>{t("outflow") || "Expense"}</Text>
-          <Text style={[styles.summaryValue, { color: C.secondary }]} numberOfLines={1} adjustsFontSizeToFit>
+        <View style={[styles.summaryCard, { borderLeftWidth: 3, borderLeftColor: C.tertiary }]}>
+          <View style={styles.summaryCardHeader}>
+            <View style={[styles.summaryIconWrap, { backgroundColor: C.tertiaryFixed }]}>
+              <MaterialIcons name="trending-down" size={16} color={C.tertiary} />
+            </View>
+          </View>
+          <Text style={styles.summaryLabel} numberOfLines={1}>Keluar</Text>
+          <Text style={[styles.summaryValue, { color: C.tertiary }]} numberOfLines={1} adjustsFontSizeToFit>
             Rp {formatCurrency(totalExpense).whole}
           </Text>
         </View>
       </View>
+
+      {/* ━━━ CATEGORY BREAKDOWN CARD ━━━ */}
+      {categorySummary.length > 0 && (
+        <View style={styles.categoryBreakdownCard}>
+          <View style={styles.categoryBreakdownHeader}>
+            <MaterialIcons name="pie-chart" size={18} color={C.primary} />
+            <Text style={styles.categoryBreakdownTitle}>
+              Ringkasan Kategori
+            </Text>
+            <Text style={styles.categoryBreakdownCount}>
+              {categorySummary.length} kategori
+            </Text>
+          </View>
+          <View style={{ overflow: "hidden" }}>
+            {(categoryExpanded ? categorySummary : categorySummary.slice(0, CATEGORY_PREVIEW_COUNT)).map((cat, idx) => {
+              const visibleItems = categoryExpanded ? categorySummary : categorySummary.slice(0, CATEGORY_PREVIEW_COUNT);
+              const isLast = idx === visibleItems.length - 1;
+              const isIncome = cat.type === "income";
+              const totalAll = categorySummary.reduce((sum, c) => sum + c.total, 0);
+              const pct = totalAll > 0 ? (cat.total / totalAll) * 100 : 0;
+              return (
+                <View key={cat.category} style={[styles.catBreakdownItem, !isLast && styles.catBreakdownItemBorder]}>
+                  <View style={[styles.catBreakdownIcon, { backgroundColor: cat.iconBg }]}>
+                    <MaterialIcons name={cat.icon} size={18} color={cat.iconColor} />
+                  </View>
+                  <View style={styles.catBreakdownBody}>
+                    <View style={styles.catBreakdownTopRow}>
+                      <Text style={styles.catBreakdownName} numberOfLines={1}>
+                        {translateCategory(cat.category, t)}
+                      </Text>
+                      <Text style={[styles.catBreakdownAmount, { color: isIncome ? C.primary : C.onSurface }]}>
+                        {isIncome ? "+" : "-"}Rp {formatCurrency(cat.total).whole}
+                      </Text>
+                    </View>
+                    <View style={styles.catBreakdownBarBg}>
+                      <View
+                        style={[
+                          styles.catBreakdownBarFill,
+                          {
+                            width: `${Math.min(pct, 100)}%`,
+                            backgroundColor: isIncome ? C.primaryFixed : C.secondaryContainer,
+                          },
+                        ]}
+                      />
+                    </View>
+                    <Text style={styles.catBreakdownMeta}>
+                      {cat.count} transaksi · {pct.toFixed(1)}%
+                    </Text>
+                  </View>
+                </View>
+              );
+            })}
+            {/* Gradient fade overlay when collapsed */}
+            {!categoryExpanded && categorySummary.length > CATEGORY_PREVIEW_COUNT && (
+              <LinearGradient
+                colors={["rgba(255,255,255,0)", "rgba(255,255,255,0.95)", "#ffffff"]}
+                style={styles.catGradientOverlay}
+                pointerEvents="none"
+              />
+            )}
+          </View>
+          {/* Expand / Collapse toggle */}
+          {categorySummary.length > CATEGORY_PREVIEW_COUNT && (
+            <TouchableOpacity
+              style={styles.catExpandBtn}
+              onPress={() => setCategoryExpanded(!categoryExpanded)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.catExpandText}>
+                {categoryExpanded ? "Tampilkan Lebih Sedikit" : `Lihat Semua (${categorySummary.length})`}
+              </Text>
+              <MaterialIcons
+                name={categoryExpanded ? "keyboard-arrow-up" : "keyboard-arrow-down"}
+                size={20}
+                color={C.primary}
+              />
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
 
       {/* ━━━ SEARCH & FILTER ━━━ */}
       <View style={styles.controlsSection}>
@@ -207,7 +345,7 @@ export default function HistoryScreen() {
       </View>
 
       {/* ━━━ TRANSACTIONS LIST ━━━ */}
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
+      <View style={styles.listContent}>
         {isLoading ? (
            <View style={styles.centerWrap}>
              <ActivityIndicator size="large" color={C.primary} />
@@ -255,6 +393,7 @@ export default function HistoryScreen() {
             </View>
           ))
         )}
+      </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -265,10 +404,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: C.background,
   },
+  scrollContent: {
+    paddingBottom: 40,
+  },
   header: {
     paddingHorizontal: 20,
     paddingTop: 16,
-    paddingBottom: 24,
+    paddingBottom: 12,
   },
   headerTitle: {
     fontSize: 26,
@@ -285,7 +427,7 @@ const styles = StyleSheet.create({
   summaryRow: {
     flexDirection: "row",
     paddingHorizontal: 20,
-    gap: 12,
+    gap: 10,
     marginBottom: 20,
   },
   summaryCard: {
@@ -299,16 +441,25 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 2,
   },
+  summaryCardHeader: {
+    marginBottom: 8,
+  },
+  summaryIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   summaryLabel: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "700",
     color: C.onSurfaceVariant,
-    textTransform: "uppercase",
-    letterSpacing: 1,
-    marginBottom: 6,
+    letterSpacing: 0.3,
+    marginBottom: 4,
   },
   summaryValue: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "800",
   },
   categorySection: {
@@ -506,31 +657,115 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "800",
   },
-  txIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: "center",
+
+  // Category Breakdown Card
+  categoryBreakdownCard: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    backgroundColor: C.surfaceContainerLowest,
+    borderRadius: 20,
+    padding: 18,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  categoryBreakdownHeader: {
+    flexDirection: "row",
     alignItems: "center",
-    marginRight: 14,
+    marginBottom: 16,
+    gap: 8,
   },
-  txBody: {
-    flex: 1,
-    marginRight: 10,
-  },
-  txTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: C.onSurface,
-    marginBottom: 4,
-  },
-  txMeta: {
-    fontSize: 12,
-    fontWeight: "500",
-    color: C.onSurfaceVariant,
-  },
-  txAmount: {
+  categoryBreakdownTitle: {
     fontSize: 15,
     fontWeight: "800",
+    color: C.onSurface,
+    letterSpacing: -0.3,
+  },
+  catBreakdownItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 12,
+  },
+  catBreakdownItemBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: C.surfaceContainerHigh,
+  },
+  catBreakdownIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  catBreakdownBody: {
+    flex: 1,
+  },
+  catBreakdownTopRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  catBreakdownName: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: C.onSurface,
+    flex: 1,
+    marginRight: 8,
+  },
+  catBreakdownAmount: {
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  catBreakdownBarBg: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: C.surfaceContainerHigh,
+    marginBottom: 4,
+    overflow: "hidden",
+  },
+  catBreakdownBarFill: {
+    height: 4,
+    borderRadius: 2,
+  },
+  catBreakdownMeta: {
+    fontSize: 11,
+    fontWeight: "500",
+    color: C.outline,
+  },
+  categoryBreakdownCount: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: C.outline,
+    marginLeft: "auto",
+    backgroundColor: C.surfaceContainerHigh,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  catGradientOverlay: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 50,
+  },
+  catExpandBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingTop: 12,
+    gap: 4,
+    borderTopWidth: 1,
+    borderTopColor: C.surfaceContainerHigh,
+    marginTop: 4,
+  },
+  catExpandText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: C.primary,
   },
 });
