@@ -311,6 +311,55 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "800",
   },
+  categorySection: {
+    marginBottom: 20,
+  },
+  categoryScroll: {
+    paddingHorizontal: 20,
+    gap: 12,
+  },
+  categoryCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: C.surfaceContainerLowest,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: C.surfaceContainerHigh,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
+    minWidth: 140,
+  },
+  categoryIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  categoryName: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: C.onSurfaceVariant,
+    marginBottom: 2,
+  },
+  categoryAmount: {
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  noCategoryMsg: {
+    paddingVertical: 10,
+  },
+  noCategoryText: {
+    fontSize: 13,
+    color: C.outline,
+    fontStyle: "italic",
+  },
   controlsSection: {
     paddingHorizontal: 20,
     marginBottom: 16,
@@ -429,6 +478,33 @@ const styles = StyleSheet.create({
   txItemBorder: {
     borderBottomWidth: 1,
     borderBottomColor: C.surfaceContainerHigh,
+  },
+  txIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 14,
+  },
+  txBody: {
+    flex: 1,
+    marginRight: 10,
+  },
+  txTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: C.onSurface,
+    marginBottom: 4,
+  },
+  txMeta: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: C.onSurfaceVariant,
+  },
+  txAmount: {
+    fontSize: 15,
+    fontWeight: "800",
   },
   txIconWrap: {
     width: 44,

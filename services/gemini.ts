@@ -1,7 +1,7 @@
 import { FinancialSummary } from "../hooks/useFinancialSummary";
 
 const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
- 
+
 async function fetchWithRetry(
   prompt: string,
   model: string,
@@ -9,7 +9,7 @@ async function fetchWithRetry(
   retries = 2
 ): Promise<Response> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-  
+
   for (let i = 0; i <= retries; i++) {
     try {
       const response = await fetch(url, {
@@ -24,7 +24,7 @@ async function fetchWithRetry(
       if (response.ok || (response.status !== 503 && response.status !== 429)) {
         return response;
       }
-      
+
       // If we are here, it's 503 or 429. Wait and retry.
       if (i < retries) {
         const waitTime = Math.pow(2, i) * 1000; // Exponential backoff: 1s, 2s
@@ -37,7 +37,7 @@ async function fetchWithRetry(
   }
   throw new Error("Maximum retries reached");
 }
- 
+
 export async function generateSmartFinancialInsight(
   summaryData: FinancialSummary,
   recentTransactions: any[]
@@ -82,23 +82,23 @@ ${recentTransactions.slice(0, 5).map(tx => `- ${tx.category}: Rp ${tx.amount.toL
 
   try {
     // Try Primary Model (2.5-flash)
-    let response = await fetchWithRetry(prompt, "gemini-2.5-flash", GEMINI_API_KEY);
-    
+    let response = await fetchWithRetry(prompt, "gemini-3.1-flash-lite-preview", GEMINI_API_KEY);
+
     // If Primary fails with 503 after retries, try Fallback Model
     if (!response.ok && response.status === 503) {
       console.warn("Primary Gemini 2.5-flash busy, falling back to 1.5-flash...");
-      response = await fetchWithRetry(prompt, "gemini-1.5-flash", GEMINI_API_KEY);
+      response = await fetchWithRetry(prompt, "gemini-3.1-flash-lite-preview", GEMINI_API_KEY);
     }
 
     const data = await response.json();
 
     if (!response.ok) {
-        console.error("Gemini API Error", data);
-        throw new Error(data.error?.message || "Failed to generate insight.");
+      console.error("Gemini API Error", data);
+      throw new Error(data.error?.message || "Failed to generate insight.");
     }
 
     let candidate = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    
+
     if (!candidate) {
       throw new Error("No response generated from Gemini API.");
     }
@@ -106,9 +106,9 @@ ${recentTransactions.slice(0, 5).map(tx => `- ${tx.category}: Rp ${tx.amount.toL
     // Clean up potentially wrapped markdown (e.g. ```json ... ```)
     candidate = candidate.trim();
     if (candidate.startsWith("```json")) {
-        candidate = candidate.replace(/^```json/g, "").replace(/```$/g, "").trim();
+      candidate = candidate.replace(/^```json/g, "").replace(/```$/g, "").trim();
     } else if (candidate.startsWith("```")) {
-        candidate = candidate.replace(/^```/g, "").replace(/```$/g, "").trim();
+      candidate = candidate.replace(/^```/g, "").replace(/```$/g, "").trim();
     }
 
     // Attempt to parse to ensure it's valid JSON before returning

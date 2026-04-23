@@ -1,14 +1,27 @@
-import React from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Platform, ActivityIndicator } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { MaterialIcons } from "@expo/vector-icons";
+import { useQuery } from "convex/react";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
+import React, { useEffect } from "react";
+import {
+  ActivityIndicator,
+  Dimensions,
+  Image,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../context/AuthContext";
 import { useLanguage } from "../../context/LanguageContext";
+import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
+import { useInsights } from "../../hooks/useInsights";
+import { MaterialIcons } from "@expo/vector-icons";
+
+const { width } = Dimensions.get("window");
 
 export default function InsightsScreen() {
   const router = useRouter();
@@ -16,18 +29,39 @@ export default function InsightsScreen() {
   const { t } = useLanguage();
   const userId = user?._id as Id<"users">;
 
-  const dashboardData = useQuery(api.insights.getInsightsDashboardData, userId ? { userId } : "skip");
+  const dashboardData = useQuery(
+    api.insights.getInsightsDashboardData,
+    userId ? { userId } : "skip"
+  );
+  
+  const { 
+    latestInsight, 
+    isGenerating, 
+    generateNewInsight, 
+    hasTransactions 
+  } = useInsights();
+
+  // Generate insight on first load if none exists
+  useEffect(() => {
+    if (hasTransactions && !latestInsight && !isGenerating) {
+      generateNewInsight();
+    }
+  }, [hasTransactions, latestInsight]);
 
   if (dashboardData === undefined) {
     return (
-      <SafeAreaView style={[styles.container, { justifyContent: "center", alignItems: "center" }]} edges={["top"]}>
+      <SafeAreaView
+        style={[styles.container, { justifyContent: "center", alignItems: "center" }]}
+        edges={["top"]}
+      >
         <ActivityIndicator size="large" color="#0d631b" />
       </SafeAreaView>
     );
   }
+
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -39,17 +73,34 @@ export default function InsightsScreen() {
               {user?.photoUrl ? (
                 <Image source={{ uri: user.photoUrl }} style={styles.avatar} />
               ) : (
-                <View style={[styles.avatar, { alignItems: "center", justifyContent: "center", backgroundColor: "#e7e8e9" }]}>
+                <View
+                  style={[
+                    styles.avatar,
+                    { alignItems: "center", justifyContent: "center", backgroundColor: "#e7e8e9" },
+                  ]}
+                >
                   <MaterialIcons name="person" size={22} color="#40493d" />
                 </View>
               )}
             </View>
-            <Text style={styles.headerTitle}>{user?.name?.split(" ")[0] || "Editorial Intelligence"}</Text>
+            <Text style={styles.headerTitle}>
+              {user?.name?.split(" ")[0] || "Editorial Intelligence"}
+            </Text>
           </View>
-          <TouchableOpacity activeOpacity={0.7} style={styles.headerRightBtn}>
-            <MaterialIcons name="auto-awesome" size={24} color="#0d631b" />
+          <TouchableOpacity 
+            activeOpacity={0.7} 
+            style={styles.headerRightBtn}
+            onPress={() => generateNewInsight()}
+            disabled={isGenerating}
+          >
+            {isGenerating ? (
+              <ActivityIndicator size="small" color="#0d631b" />
+            ) : (
+              <MaterialIcons name="auto-awesome" size={24} color="#0d631b" />
+            )}
           </TouchableOpacity>
         </View>
+
         {/* Hero Section */}
         <View style={styles.heroSection}>
           <View style={styles.badge}>
@@ -57,7 +108,9 @@ export default function InsightsScreen() {
           </View>
           <Text style={styles.heroTitle}>{t("wealth_breathing")}</Text>
           <Text style={styles.heroSubtitle}>
-            {t("intelligence_reveals")}<Text style={styles.heroSubtitleHighlight}>{dashboardData?.performancePercentage}%</Text>{t("this_month")}
+            {t("intelligence_reveals")}
+            <Text style={styles.heroSubtitleHighlight}>{dashboardData?.performancePercentage}%</Text>
+            {t("this_month")}
           </Text>
         </View>
 
@@ -70,8 +123,10 @@ export default function InsightsScreen() {
             {/* Donut representation */}
             <View style={styles.donutCircle}>
               <View style={styles.donutInner}>
-                 <Text style={styles.donutTotal}>${dashboardData?.spendingMetrics.total.toLocaleString()}</Text>
-                 <Text style={styles.donutLabel}>{t("total")}</Text>
+                <Text style={styles.donutTotal}>
+                  Rp {dashboardData?.spendingMetrics.total.toLocaleString("id-ID")}
+                </Text>
+                <Text style={styles.donutLabel}>{t("total")}</Text>
               </View>
               {/* Pseudo arcs using CSS rotated semi-circles */}
               <View style={[styles.arc, styles.arcLifestyle]} />
@@ -84,13 +139,13 @@ export default function InsightsScreen() {
               {dashboardData?.spendingMetrics.breakdown.map((item: any, idx: number) => {
                 let transKey = item.label.toLowerCase() as any;
                 if (transKey.includes("essential")) transKey = "essentials";
-                
+
                 return (
-                  <LegendItem 
-                    key={idx} 
-                    color={item.color} 
-                    label={t(transKey)} 
-                    amount={`$${item.amount.toLocaleString()}`} 
+                  <LegendItem
+                    key={idx}
+                    color={item.color}
+                    label={t(transKey)}
+                    amount={`Rp ${item.amount.toLocaleString("id-ID")}`}
                   />
                 );
               })}
@@ -98,18 +153,52 @@ export default function InsightsScreen() {
           </View>
         </View>
 
-        {/* AI Growth Insight Card */}
-        <View style={[styles.card, styles.liquidityCard]}>
-          <MaterialIcons name="lightbulb" size={32} color="#000767" style={{ marginBottom: 12 }} />
-          <Text style={styles.liquidityTitle}>{t("you_have")}{dashboardData?.idleLiquidity.amount}{t("in_idle_liquidity")}</Text>
-          <Text style={styles.liquiditySubtitle}>
-            {t("atelier_recommends")}{dashboardData?.idleLiquidity.recommendation}{t("today_for_projected")}{dashboardData?.idleLiquidity.projectedGain}{t("gain_by_friday")}
-          </Text>
-          <TouchableOpacity activeOpacity={0.8}>
-            <LinearGradient colors={["#0d631b", "#2e7d32"]} style={styles.optimizeBtn}>
-              <Text style={styles.optimizeBtnText}>{t("optimize_now")}</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+        {/* AI Insight Card - Replaced static with dynamic */}
+        <View style={[styles.card, styles.aiInsightCard]}>
+          <View style={styles.aiHeader}>
+            <MaterialIcons name="auto-awesome" size={24} color="#0d631b" />
+            <Text style={styles.aiHeaderText}>{t("intelligence_fragment")}</Text>
+          </View>
+          
+          {isGenerating ? (
+            <View style={styles.aiLoadingContainer}>
+              <ActivityIndicator size="small" color="#0d631b" />
+              <Text style={styles.aiLoadingText}>Menganalisis data finansial Anda...</Text>
+            </View>
+          ) : latestInsight ? (
+            <>
+              <Text style={styles.aiMessage}>{latestInsight.message}</Text>
+              {latestInsight.suggestedAction !== "none" && (
+                <TouchableOpacity 
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    if (latestInsight.suggestedAction === "create_budget") router.push("/(tabs)/home");
+                    if (latestInsight.suggestedAction === "add_transaction") router.push("/addTransaction");
+                    if (latestInsight.suggestedAction === "view_goals") router.push("/(tabs)/goals");
+                  }}
+                >
+                  <LinearGradient colors={["#0d631b", "#2e7d32"]} style={styles.optimizeBtn}>
+                    <Text style={styles.optimizeBtnText}>{latestInsight.actionLabel}</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+            </>
+          ) : (
+            <>
+              <Text style={styles.aiMessage}>
+                {hasTransactions 
+                  ? "Klik tombol di bawah untuk mendapatkan wawasan cerdas dari AI." 
+                  : t("start_adding_tx")}
+              </Text>
+              {hasTransactions && (
+                <TouchableOpacity activeOpacity={0.8} onPress={() => generateNewInsight()}>
+                  <LinearGradient colors={["#0d631b", "#2e7d32"]} style={styles.optimizeBtn}>
+                    <Text style={styles.optimizeBtnText}>Dapatkan Wawasan AI</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+            </>
+          )}
         </View>
 
         {/* Micro-Income Cards */}
@@ -129,16 +218,16 @@ export default function InsightsScreen() {
             };
 
             return (
-              <MicroCard 
+              <MicroCard
                 key={item.id}
-                icon={item.icon} 
-                iconBg={item.iconBg} 
-                iconColor={item.iconColor} 
-                percent={item.percent === "Stable" ? t("stable" as any) : item.percent} 
-                percentColor={item.percentColor} 
-                title={getTitle(item.id)} 
-                subtitle={getSubtitle(item.id)} 
-                amount={`$${item.amount.toFixed(2)}`} 
+                icon={item.icon}
+                iconBg={item.iconBg}
+                iconColor={item.iconColor}
+                percent={item.percent === "Stable" ? t("stable" as any) : item.percent}
+                percentColor={item.percentColor}
+                title={getTitle(item.id)}
+                subtitle={getSubtitle(item.id)}
+                amount={`Rp ${item.amount.toLocaleString("id-ID")}`}
               />
             );
           })}
@@ -149,13 +238,13 @@ export default function InsightsScreen() {
       </ScrollView>
 
       {/* Floating Add Transaction Button */}
-      <TouchableOpacity 
-        style={[styles.fab, styles.addFab]} 
+      <TouchableOpacity
+        style={[styles.fab, styles.addFab]}
         activeOpacity={0.85}
         onPress={() => router.push("/addTransaction")}
       >
-        <LinearGradient 
-          colors={["#0d631b", "#88d982"]} 
+        <LinearGradient
+          colors={["#0d631b", "#88d982"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.fabGradient}
@@ -165,14 +254,23 @@ export default function InsightsScreen() {
       </TouchableOpacity>
 
       {/* Floating AI Button */}
-      <TouchableOpacity style={styles.fab} activeOpacity={0.85}>
-        <LinearGradient 
-          colors={["#0d631b", "#88d982"]} 
+      <TouchableOpacity 
+        style={styles.fab} 
+        activeOpacity={0.85}
+        onPress={() => generateNewInsight()}
+        disabled={isGenerating}
+      >
+        <LinearGradient
+          colors={["#0d631b", "#88d982"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.fabGradient}
         >
-          <MaterialIcons name="smart-toy" size={26} color="#ffffff" />
+          {isGenerating ? (
+            <ActivityIndicator color="#ffffff" size="small" />
+          ) : (
+            <MaterialIcons name="smart-toy" size={26} color="#ffffff" />
+          )}
         </LinearGradient>
       </TouchableOpacity>
     </SafeAreaView>
@@ -192,7 +290,16 @@ function LegendItem({ color, label, amount }: { color: string; label: string; am
   );
 }
 
-function MicroCard({ icon, iconBg, iconColor, percent, percentColor, title, subtitle, amount }: any) {
+function MicroCard({
+  icon,
+  iconBg,
+  iconColor,
+  percent,
+  percentColor,
+  title,
+  subtitle,
+  amount,
+}: any) {
   return (
     <View style={[styles.card, styles.microCard]}>
       <View style={styles.microCardHeader}>
@@ -204,7 +311,7 @@ function MicroCard({ icon, iconBg, iconColor, percent, percentColor, title, subt
       <Text style={styles.microTitle}>{title}</Text>
       <Text style={styles.microSubtitle}>{subtitle}</Text>
       <Text style={styles.microAmount}>
-        {amount} <Text style={styles.microAmountMo}>/mo</Text>
+        {amount} <Text style={styles.microAmountMo}>/bln</Text>
       </Text>
     </View>
   );
@@ -223,6 +330,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingVertical: 12,
+    paddingHorizontal: 20,
   },
   headerLeft: {
     flexDirection: "row",
@@ -333,9 +441,10 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   donutTotal: {
-    fontSize: 22,
+    fontSize: 16,
     fontWeight: "800",
     color: "#191c1d",
+    textAlign: "center",
   },
   donutLabel: {
     fontSize: 10,
@@ -346,7 +455,10 @@ const styles = StyleSheet.create({
   // Fake donut arcs using border trick
   arc: {
     position: "absolute",
-    top: -12, left: -12, right: -12, bottom: -12,
+    top: -12,
+    left: -12,
+    right: -12,
+    bottom: -12,
     borderRadius: 70,
     borderWidth: 12,
     borderColor: "transparent",
@@ -389,22 +501,40 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: "#707a6c",
   },
-  liquidityCard: {
-    backgroundColor: "#e0e0ff",
-    padding: 28,
+  aiInsightCard: {
+    backgroundColor: "#f1f8f1",
+    borderColor: "#d5ebd5",
+    borderWidth: 1,
   },
-  liquidityTitle: {
-    fontSize: 24,
-    fontWeight: "800",
-    color: "#000767",
+  aiHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
     marginBottom: 12,
-    lineHeight: 30,
   },
-  liquiditySubtitle: {
+  aiHeaderText: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#0d631b",
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
+  aiMessage: {
+    fontSize: 16,
+    color: "#191c1d",
+    lineHeight: 24,
+    marginBottom: 20,
+    fontWeight: "500",
+  },
+  aiLoadingContainer: {
+    paddingVertical: 20,
+    alignItems: "center",
+    gap: 12,
+  },
+  aiLoadingText: {
     fontSize: 14,
-    color: "#343d96",
-    lineHeight: 22,
-    marginBottom: 24,
+    color: "#40493d",
+    fontWeight: "500",
   },
   optimizeBtn: {
     borderRadius: 12,

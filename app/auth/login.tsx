@@ -318,35 +318,59 @@ export default function LoginScreen() {
   // Google redirects there → HTML page deep-links back to the app.
   const GOOGLE_REDIRECT_URI = `${process.env.EXPO_PUBLIC_CONVEX_SITE_URL}/auth/google/callback`;
 
-  // Fetch user info from Google and save to database
-  const handleGoogleUserInfo = async (accessToken: string) => {
-    try {
-      const res = await fetch("https://www.googleapis.com/userinfo/v2/me", {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
+  // Refs to avoid stale closures in the Google sign-in flow
+  const setUserRef = useRef(setUser);
+  const routerRef = useRef(router);
+  const loginWithGoogleRef = useRef(loginWithGoogle);
+  useEffect(() => {
+    setUserRef.current = setUser;
+    routerRef.current = router;
+    loginWithGoogleRef.current = loginWithGoogle;
+  });
 
-      if (!res.ok) {
-        throw new Error("Failed to fetch Google user info.");
+  // Decode Google user info from the id_token JWT (no API call needed!)
+  const handleGoogleIdToken = async (idToken: string) => {
+    try {
+      console.log("[GoogleAuth] Decoding id_token...");
+      
+      // JWT format: header.payload.signature — we only need the payload
+      const parts = idToken.split(".");
+      if (parts.length < 2) {
+        throw new Error("Invalid id_token format");
       }
 
-      const userInfo = await res.json();
-      // userInfo = { id, name, email, picture, ... }
+      // Base64url decode the payload
+      let payload = parts[1];
+      // Fix base64url → base64 (replace URL-safe chars, add padding)
+      payload = payload.replace(/-/g, "+").replace(/_/g, "/");
+      while (payload.length % 4 !== 0) {
+        payload += "=";
+      }
+      
+      const decoded = JSON.parse(atob(payload));
+      console.log("[GoogleAuth] Decoded email:", decoded.email);
+      console.log("[GoogleAuth] Decoded name:", decoded.name);
 
-      const userData = await loginWithGoogle({
-        name: userInfo.name || "Google User",
-        email: userInfo.email,
-        photoUrl: userInfo.picture,
+      // Save to Convex database
+      const userData = await loginWithGoogleRef.current({
+        name: decoded.name || "Google User",
+        email: decoded.email,
+        photoUrl: decoded.picture,
       });
 
-      setUser({
+      console.log("[GoogleAuth] Convex login success, userId:", userData._id);
+
+      setUserRef.current({
         _id: userData._id,
         name: userData.name,
         email: userData.email,
         createdAt: userData.createdAt,
       });
 
-      router.replace("/(tabs)/home");
+      console.log("[GoogleAuth] User set, navigating to home...");
+      routerRef.current.replace("/(tabs)/home");
     } catch (error: any) {
+      console.error("[GoogleAuth] handleGoogleIdToken error:", error?.message || error);
       const msg = error?.data ?? error?.message ?? "Google sign-in failed.";
       Alert.alert("Google Sign In Failed", msg);
     } finally {
@@ -366,47 +390,59 @@ export default function LoginScreen() {
     try {
       const returnUrl = makeRedirectUri();
       
-      // Build Google OAuth URL (implicit grant → access_token in URL fragment)
-      // Pass the returnUrl as state so the server knows where to redirect back in Expo Go.
+      // Generate a random nonce (required for id_token request)
+      const nonce = Math.random().toString(36).substring(2) + Date.now().toString(36);
+
+      // Request id_token + token so we can get user info from the JWT directly
+      // (no need to call Google's userinfo API)
       const authUrl =
         `https://accounts.google.com/o/oauth2/v2/auth?` +
         `client_id=${clientId}` +
         `&redirect_uri=${encodeURIComponent(GOOGLE_REDIRECT_URI)}` +
-        `&response_type=token` +
+        `&response_type=${encodeURIComponent("id_token token")}` +
         `&scope=${encodeURIComponent("openid profile email")}` +
         `&state=${encodeURIComponent(returnUrl)}` +
+        `&nonce=${encodeURIComponent(nonce)}` +
         `&prompt=select_account`;
 
-      // Open Chrome Custom Tab → Google account picker
-      const result = await WebBrowser.openAuthSessionAsync(
-        authUrl,
-        returnUrl
-      );
+      // Warm up the browser for better performance
+      if (Platform.OS === "android") {
+        await WebBrowser.warmUpAsync();
+      }
+
+      // Open Browser Session
+      const result = await WebBrowser.openAuthSessionAsync(authUrl, returnUrl);
+
+      // Cool down the browser
+      if (Platform.OS === "android") {
+        await WebBrowser.coolDownAsync();
+      }
+
+      console.log("[GoogleAuth] result.type:", result.type);
 
       if (result.type === "success" && result.url) {
-        // Parse access_token from the deep link URL
         const url = result.url;
-        let accessToken: string | null = null;
+        
+        // Extract id_token from the URL
+        const idTokenMatch = url.match(/id_token=([^&#]+)/);
+        const idToken = idTokenMatch ? decodeURIComponent(idTokenMatch[1]) : null;
 
-        // Extract token using regex to handle both ? and # separators reliably
-        const tokenMatch = url.match(/[\?&#]access_token=([^&#]+)/);
-        if (tokenMatch && tokenMatch[1]) {
-          accessToken = decodeURIComponent(tokenMatch[1]);
-        }
+        console.log("[GoogleAuth] id_token found:", !!idToken);
 
-        if (accessToken) {
-          await handleGoogleUserInfo(accessToken);
+        if (idToken) {
+          await handleGoogleIdToken(idToken);
         } else {
-          Alert.alert("Error", "Could not get access token from Google.");
           setIsGoogleLoading(false);
+          Alert.alert("Error", "Gagal mendapatkan token dari Google.");
         }
       } else {
-        // User dismissed the browser
+        // User cancelled or browser dismissed
         setIsGoogleLoading(false);
       }
     } catch (error: any) {
-      Alert.alert("Error", "Could not start Google Sign In.");
+      console.error("[GoogleAuth] Error:", error);
       setIsGoogleLoading(false);
+      Alert.alert("Error", "Gagal memulai login Google.");
     }
   }, []);
 
