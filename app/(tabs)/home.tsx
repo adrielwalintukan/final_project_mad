@@ -219,7 +219,7 @@ export default function HomeScreen() {
         <View style={styles.heroSection}>
           <View style={styles.statusDot}>
             <View style={styles.dot} />
-            <Text style={styles.statusLabel}>{t("portfolio_excellence")}</Text>
+            <Text style={styles.statusLabel}>{"Saldo Keuangan Anda"}</Text>
           </View>
           <Text 
             style={styles.heroAmount}
@@ -228,13 +228,25 @@ export default function HomeScreen() {
           >
             {balance < 0 ? "-" : ""}Rp {balanceWhole}<Text style={styles.heroCents}>.{balanceCents}</Text>
           </Text>
-          <View style={styles.badgeRow}>
-            <View style={styles.badgeGreen}>
-              <MaterialIcons name="receipt-long" size={14} color={C.onPrimaryFixedVariant} />
-              <Text style={styles.badgeGreenText}>{transactions.length} {t("total_entries")}</Text>
+          <View style={styles.incExpRow}>
+            <View style={styles.incExpItem}>
+              <View style={styles.incIconWrap}>
+                <MaterialIcons name="arrow-downward" size={18} color={C.primary} />
+              </View>
+              <View>
+                <Text style={styles.incExpLabel}>{"Pemasukan"}</Text>
+                <Text style={styles.incExpAmount}>{"Rp " + totalIncome.toLocaleString("id-ID")}</Text>
+              </View>
             </View>
-            <View style={styles.badgeNeutral}>
-              <Text style={styles.badgeNeutralText}>{t("live_sync")}</Text>
+            <View style={styles.incExpDivider} />
+            <View style={styles.incExpItem}>
+              <View style={styles.expIconWrap}>
+                <MaterialIcons name="arrow-upward" size={18} color={C.tertiary} />
+              </View>
+              <View>
+                <Text style={styles.incExpLabel}>{"Pengeluaran"}</Text>
+                <Text style={styles.incExpAmount}>{"Rp " + totalExpense.toLocaleString("id-ID")}</Text>
+              </View>
             </View>
           </View>
         </View>
@@ -328,39 +340,6 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* ━━━ INFLOW / OUTFLOW CARDS ━━━ */}
-        <View style={styles.flowRow}>
-          {/* Inflow */}
-          <View style={[styles.flowCard, styles.elevation]}>
-            <Text style={styles.flowLabel}>{t("inflow")}</Text>
-            <Text 
-              style={styles.flowAmount}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-            >
-              Rp {formatCurrency(totalIncome).whole}
-            </Text>
-            <View style={styles.progressTrack}>
-              <View style={[styles.progressFill, { width: `${isEmpty ? 0 : incomeWidth}%`, backgroundColor: C.primary }]} />
-            </View>
-            <Text style={styles.flowMeta}>{isEmpty ? t("track_first_income") : t("calculated_correctly")}</Text>
-          </View>
-          {/* Outflow */}
-          <View style={[styles.flowCard, styles.elevation]}>
-            <Text style={styles.flowLabel}>{t("outflow")}</Text>
-            <Text 
-              style={styles.flowAmount}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-            >
-              Rp {formatCurrency(totalExpense).whole}
-            </Text>
-            <View style={styles.progressTrack}>
-              <View style={[styles.progressFill, { width: `${isEmpty ? 0 : expenseWidth}%`, backgroundColor: C.secondary }]} />
-            </View>
-            <Text style={styles.flowMeta}>{isEmpty ? t("setup_budget") : t("tracked_perfectly")}</Text>
-          </View>
-        </View>
 
         {/* ━━━ RECENT LEDGER ━━━ */}
         <View style={styles.sectionHeader}>
@@ -420,7 +399,7 @@ export default function HomeScreen() {
         </View>
 
         {activeGoal ? (
-          <TouchableOpacity activeOpacity={0.9} style={[styles.goalCard, styles.elevation]}>
+          <TouchableOpacity activeOpacity={0.9} style={[styles.goalCard, styles.elevation]} onPress={() => router.push("/(tabs)/goals")}>
             <Text style={styles.goalLabel}>{t("active_quest_label")}</Text>
             <Text style={styles.goalTitle}>{activeGoal.title}</Text>
             <View style={styles.goalProgressSection}>
@@ -442,7 +421,7 @@ export default function HomeScreen() {
         )}
 
         {/* Manifest New Goal */}
-        <TouchableOpacity activeOpacity={0.8} style={styles.newGoalCard}>
+        <TouchableOpacity activeOpacity={0.8} style={styles.newGoalCard} onPress={() => router.push("/(tabs)/goals")}>
           <View style={styles.newGoalCircle}>
             <Ionicons name="add" size={28} color={C.primary} />
           </View>
@@ -548,36 +527,50 @@ const styles = StyleSheet.create({
   heroCents: {
     color: C.primary,
   },
-  badgeRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-    marginTop: 16,
-  },
-  badgeGreen: {
+  incExpRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    marginTop: 18,
+    paddingVertical: 4,
+  },
+  incExpItem: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  incIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: C.primaryFixed,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  badgeGreenText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: C.onPrimaryFixedVariant,
+  expIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: C.tertiaryFixed,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  badgeNeutral: {
-    backgroundColor: C.surfaceContainerLowest,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
-  },
-  badgeNeutralText: {
-    fontSize: 13,
+  incExpLabel: {
+    fontSize: 12,
     fontWeight: "500",
     color: C.onSurfaceVariant,
+    marginBottom: 2,
+  },
+  incExpAmount: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: C.onSurface,
+  },
+  incExpDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: C.outlineVariant,
+    marginHorizontal: 12,
   },
 
   // AI Card

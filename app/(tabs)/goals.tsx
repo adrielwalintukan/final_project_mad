@@ -32,6 +32,19 @@ const ICONS = [
   { id: "phone-iphone", icon: "phone-iphone", label: "Gadget" },
   { id: "medical-services", icon: "medical-services", label: "Kesehatan" },
   { id: "diamond", icon: "diamond", label: "Investasi" },
+  { id: "business-center", icon: "business-center", label: "Bisnis" },
+  { id: "favorite", icon: "favorite", label: "Nikah" },
+  { id: "shield", icon: "shield", label: "Darurat" },
+  { id: "shopping-bag", icon: "shopping-bag", label: "Belanja" },
+  { id: "fitness-center", icon: "fitness-center", label: "Olahraga" },
+  { id: "headphones", icon: "headphones", label: "Musik" },
+  { id: "restaurant", icon: "restaurant", label: "Makanan" },
+  { id: "camera-alt", icon: "camera-alt", label: "Kamera" },
+  { id: "pets", icon: "pets", label: "Hewan" },
+  { id: "redeem", icon: "redeem", label: "Hadiah" },
+  { id: "child-care", icon: "child-care", label: "Anak" },
+  { id: "laptop", icon: "laptop", label: "Laptop" },
+  { id: "two-wheeler", icon: "two-wheeler", label: "Motor" },
 ];
 
 function formatRp(n: number) {
@@ -71,12 +84,12 @@ export default function GoalsScreen() {
 
   const handleCreateGoal = async () => {
     if (!newTitle.trim() || !newTarget.trim()) {
-      Alert.alert("Error", "Judul dan target harus diisi");
+      Alert.alert("Error", t("goals_error_fill_fields" as any));
       return;
     }
     const target = parseFloat(newTarget.replace(/[^0-9]/g, ""));
     if (isNaN(target) || target <= 0) {
-      Alert.alert("Error", "Masukkan target yang valid");
+      Alert.alert("Error", t("goals_error_valid_target" as any));
       return;
     }
     setIsSaving(true);
@@ -86,7 +99,7 @@ export default function GoalsScreen() {
       setNewTitle("");
       setNewTarget("");
       setNewIcon("savings");
-    } catch (e) { Alert.alert("Error", "Gagal membuat target"); }
+    } catch (e) { Alert.alert("Error", t("goals_error_create" as any)); }
     finally { setIsSaving(false); }
   };
 
@@ -94,7 +107,7 @@ export default function GoalsScreen() {
     if (!selectedGoal || !savingsAmount.trim()) return;
     const amount = parseFloat(savingsAmount.replace(/[^0-9]/g, ""));
     if (isNaN(amount) || amount <= 0) {
-      Alert.alert("Error", "Masukkan jumlah yang valid");
+      Alert.alert("Error", t("goals_error_valid_amount" as any));
       return;
     }
     setIsSaving(true);
@@ -103,14 +116,14 @@ export default function GoalsScreen() {
       setShowSavingsModal(false);
       setSavingsAmount("");
       setSelectedGoal(null);
-    } catch (e) { Alert.alert("Error", "Gagal menambah tabungan"); }
+    } catch (e) { Alert.alert("Error", t("goals_error_add" as any)); }
     finally { setIsSaving(false); }
   };
 
   const handleDelete = (goal: any) => {
-    Alert.alert("Hapus Target", `Hapus "${goal.title}"?`, [
-      { text: "Batal", style: "cancel" },
-      { text: "Hapus", style: "destructive", onPress: () => deleteGoalMut({ goalId: goal._id }) },
+    Alert.alert(t("goals_delete_title" as any), `${t("goals_delete_confirm" as any)} "${goal.title}"?`, [
+      { text: t("cancel" as any), style: "cancel" },
+      { text: t("delete" as any), style: "destructive", onPress: () => deleteGoalMut({ goalId: goal._id }) },
     ]);
   };
 
@@ -129,8 +142,8 @@ export default function GoalsScreen() {
       {/* Header */}
       <View style={s.header}>
         <View>
-          <Text style={s.headerTitle}>{"Target Keuangan"}</Text>
-          <Text style={s.headerSub}>{"Kelola tujuan tabungan Anda"}</Text>
+          <Text style={s.headerTitle}>{t("goals_title" as any)}</Text>
+          <Text style={s.headerSub}>{t("goals_subtitle" as any)}</Text>
         </View>
         <TouchableOpacity activeOpacity={0.7} onPress={() => router.push("/chatbot")} style={{ padding: 8 }}>
           <MaterialIcons name="auto-awesome" size={24} color={C.primary} />
@@ -144,10 +157,10 @@ export default function GoalsScreen() {
             <View style={s.summaryIconWrap}>
               <MaterialIcons name="flag" size={20} color={C.primary} />
             </View>
-            <Text style={s.summaryLabel}>{"RINGKASAN TARGET"}</Text>
+            <Text style={s.summaryLabel}>{t("goals_summary_label" as any)}</Text>
           </View>
           <Text style={s.summaryTotal}>{formatRp(summary.totalSaved)}</Text>
-          <Text style={s.summarySubTotal}>{"dari " + formatRp(summary.totalTarget) + " target"}</Text>
+          <Text style={s.summarySubTotal}>{t("goals_from_target" as any) + " " + formatRp(summary.totalTarget) + " " + t("goals_target_word" as any)}</Text>
           {summary.totalTarget > 0 && (
             <View style={s.summaryBar}>
               <View style={[s.summaryBarFill, { width: `${Math.min(100, (summary.totalSaved / summary.totalTarget) * 100)}%` }]} />
@@ -156,17 +169,17 @@ export default function GoalsScreen() {
           <View style={s.summaryStats}>
             <View style={s.statItem}>
               <Text style={s.statNum}>{String(summary.activeCount)}</Text>
-              <Text style={s.statLabel}>{"Aktif"}</Text>
+              <Text style={s.statLabel}>{t("goals_active" as any)}</Text>
             </View>
             <View style={s.statDivider} />
             <View style={s.statItem}>
               <Text style={s.statNum}>{String(summary.completedCount)}</Text>
-              <Text style={s.statLabel}>{"Selesai"}</Text>
+              <Text style={s.statLabel}>{t("goals_completed" as any)}</Text>
             </View>
             <View style={s.statDivider} />
             <View style={s.statItem}>
               <Text style={s.statNum}>{String(goals.length)}</Text>
-              <Text style={s.statLabel}>{"Total"}</Text>
+              <Text style={s.statLabel}>{t("goals_total" as any)}</Text>
             </View>
           </View>
         </LinearGradient>
@@ -177,12 +190,12 @@ export default function GoalsScreen() {
             <View style={s.emptyIcon}>
               <MaterialIcons name="track-changes" size={40} color={C.primary} />
             </View>
-            <Text style={s.emptyTitle}>{"Belum Ada Target"}</Text>
-            <Text style={s.emptyText}>{"Mulai buat target keuangan pertama Anda untuk mencapai impian!"}</Text>
+            <Text style={s.emptyTitle}>{t("goals_empty_title" as any)}</Text>
+            <Text style={s.emptyText}>{t("goals_empty_text" as any)}</Text>
           </View>
         ) : (
           <View style={{ gap: 14 }}>
-            <Text style={s.sectionTitle}>{"Target Anda"}</Text>
+            <Text style={s.sectionTitle}>{t("goals_your_goals" as any)}</Text>
             {goals.map((goal: any) => {
               const pct = goal.targetAmount > 0 ? Math.min(100, (goal.currentAmount / goal.targetAmount) * 100) : 0;
               const isCompleted = goal.status === "completed";
@@ -210,7 +223,7 @@ export default function GoalsScreen() {
                   </View>
                   <View style={s.goalBottom}>
                     <Text style={[s.goalPct, isCompleted && { color: "#4caf50" }]}>
-                      {isCompleted ? "Tercapai!" : `${pct.toFixed(0)}%`}
+                      {isCompleted ? t("goals_achieved" as any) : `${pct.toFixed(0)}%`}
                     </Text>
                     {!isCompleted && (
                       <TouchableOpacity
@@ -219,7 +232,7 @@ export default function GoalsScreen() {
                         onPress={() => { setSelectedGoal(goal); setShowSavingsModal(true); }}
                       >
                         <MaterialIcons name="add" size={16} color={C.primary} />
-                        <Text style={s.addSavingsText}>{"Tambah"}</Text>
+                        <Text style={s.addSavingsText}>{t("goals_add_savings" as any)}</Text>
                       </TouchableOpacity>
                     )}
                   </View>
@@ -242,14 +255,14 @@ export default function GoalsScreen() {
         <View style={s.modalOverlay}>
           <View style={s.modalContent}>
             <View style={s.modalHeader}>
-              <Text style={s.modalTitle}>{"Buat Target Baru"}</Text>
+              <Text style={s.modalTitle}>{t("goals_create_new" as any)}</Text>
               <TouchableOpacity onPress={() => setShowAddModal(false)}><MaterialIcons name="close" size={24} color={C.onSurface} /></TouchableOpacity>
             </View>
-            <Text style={s.inputLabel}>{"Nama Target"}</Text>
-            <TextInput style={s.input} placeholder="contoh: Beli Laptop" placeholderTextColor={C.outline} value={newTitle} onChangeText={setNewTitle} />
-            <Text style={s.inputLabel}>{"Target (Rp)"}</Text>
-            <TextInput style={s.input} placeholder="contoh: 5000000" placeholderTextColor={C.outline} value={newTarget} onChangeText={setNewTarget} keyboardType="numeric" />
-            <Text style={s.inputLabel}>{"Ikon"}</Text>
+            <Text style={s.inputLabel}>{t("goals_goal_name" as any)}</Text>
+            <TextInput style={s.input} placeholder={t("goals_goal_name_placeholder" as any)} placeholderTextColor={C.outline} value={newTitle} onChangeText={setNewTitle} />
+            <Text style={s.inputLabel}>{t("goals_target_amount" as any)}</Text>
+            <TextInput style={s.input} placeholder={t("goals_target_placeholder" as any)} placeholderTextColor={C.outline} value={newTarget} onChangeText={setNewTarget} keyboardType="numeric" />
+            <Text style={s.inputLabel}>{t("goals_icon" as any)}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 20 }}>
               <View style={{ flexDirection: "row", gap: 10 }}>
                 {ICONS.map((ic) => (
@@ -262,7 +275,7 @@ export default function GoalsScreen() {
             </ScrollView>
             <TouchableOpacity style={s.modalBtn} activeOpacity={0.8} onPress={handleCreateGoal} disabled={isSaving}>
               <LinearGradient colors={[C.primary, C.primaryContainer]} style={s.modalBtnGradient}>
-                {isSaving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={s.modalBtnText}>{"Buat Target"}</Text>}
+                {isSaving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={s.modalBtnText}>{t("goals_create_btn" as any)}</Text>}
               </LinearGradient>
             </TouchableOpacity>
           </View>
@@ -274,7 +287,7 @@ export default function GoalsScreen() {
         <View style={s.modalOverlay}>
           <View style={s.modalContent}>
             <View style={s.modalHeader}>
-              <Text style={s.modalTitle}>{"Tambah Tabungan"}</Text>
+              <Text style={s.modalTitle}>{t("goals_add_savings_title" as any)}</Text>
               <TouchableOpacity onPress={() => { setShowSavingsModal(false); setSavingsAmount(""); }}><MaterialIcons name="close" size={24} color={C.onSurface} /></TouchableOpacity>
             </View>
             {selectedGoal && (
@@ -283,11 +296,11 @@ export default function GoalsScreen() {
                 <Text style={s.savingsGoalName}>{selectedGoal.title}</Text>
               </View>
             )}
-            <Text style={s.inputLabel}>{"Jumlah (Rp)"}</Text>
-            <TextInput style={s.input} placeholder="contoh: 500000" placeholderTextColor={C.outline} value={savingsAmount} onChangeText={setSavingsAmount} keyboardType="numeric" />
+            <Text style={s.inputLabel}>{t("goals_amount_label" as any)}</Text>
+            <TextInput style={s.input} placeholder={t("goals_amount_placeholder" as any)} placeholderTextColor={C.outline} value={savingsAmount} onChangeText={setSavingsAmount} keyboardType="numeric" />
             <TouchableOpacity style={s.modalBtn} activeOpacity={0.8} onPress={handleAddSavings} disabled={isSaving}>
               <LinearGradient colors={[C.primary, C.primaryContainer]} style={s.modalBtnGradient}>
-                {isSaving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={s.modalBtnText}>{"Tambah"}</Text>}
+                {isSaving ? <ActivityIndicator color="#fff" size="small" /> : <Text style={s.modalBtnText}>{t("goals_add_btn" as any)}</Text>}
               </LinearGradient>
             </TouchableOpacity>
           </View>
