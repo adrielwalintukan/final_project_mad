@@ -31,6 +31,8 @@ export default defineSchema({
     title: v.string(),
     targetAmount: v.number(),
     currentAmount: v.number(),
+    icon: v.optional(v.string()),
+    status: v.optional(v.string()),
     deadline: v.optional(v.number()),
     createdAt: v.number(),
   }).index("by_userId", ["userId"]),
