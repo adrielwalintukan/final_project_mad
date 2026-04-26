@@ -408,7 +408,7 @@ const styles = StyleSheet.create({
   typingDots: { flexDirection: "row", alignItems: "center", gap: 4 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: C.primary },
   dot1: { opacity: 0.3 }, dot2: { opacity: 0.6 }, dot3: { opacity: 0.9 },
-  inputBar: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: Platform.OS === "ios" ? 20 : 12, backgroundColor: C.surface, borderTopWidth: 1, borderTopColor: C.surfaceContainerHigh },
+  inputBar: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: Platform.OS === "ios" ? 28 : 16, backgroundColor: C.surface, borderTopWidth: 1, borderTopColor: C.surfaceContainerHigh },
   inputWrap: { flexDirection: "row", alignItems: "flex-end", backgroundColor: C.background, borderRadius: 24, paddingHorizontal: 16, paddingVertical: 8, borderWidth: 1, borderColor: C.outlineVariant },
   input: { flex: 1, maxHeight: 120, fontSize: 15, color: C.onSurface, paddingTop: 8, paddingBottom: 8 },
   sendBtn: { marginLeft: 10, marginBottom: 2 },

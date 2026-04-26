@@ -345,7 +345,7 @@ export default function HomeScreen() {
         {/* ━━━ RECENT LEDGER ━━━ */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>{t("recent_ledger")}</Text>
-          <TouchableOpacity activeOpacity={0.7}>
+          <TouchableOpacity activeOpacity={0.7} onPress={() => router.push("/(tabs)/history")}>
             <Text style={styles.sectionAction}>{t("review_all")}</Text>
           </TouchableOpacity>
         </View>
