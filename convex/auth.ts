@@ -62,6 +62,7 @@ export const registerUser = mutation({
       _id: userId,
       name,
       email,
+      photoUrl: undefined,
       createdAt: Date.now(),
     };
   },
@@ -102,6 +103,7 @@ export const loginUser = mutation({
       _id: user._id,
       name: user.name,
       email: user.email,
+      photoUrl: user.photoUrl,
       createdAt: user.createdAt,
     };
   },
@@ -135,6 +137,7 @@ export const loginWithGoogle = mutation({
         _id: existingUser._id,
         name: existingUser.name,
         email: existingUser.email,
+        photoUrl: existingUser.photoUrl,
         createdAt: existingUser.createdAt,
       };
     }
@@ -151,6 +154,7 @@ export const loginWithGoogle = mutation({
       _id: userId,
       name,
       email,
+      photoUrl: args.photoUrl,
       createdAt: Date.now(),
     };
   },
@@ -168,6 +172,7 @@ export const getCurrentUser = query({
       _id: user._id,
       name: user.name,
       email: user.email,
+      photoUrl: user.photoUrl,
       createdAt: user.createdAt,
     };
   },

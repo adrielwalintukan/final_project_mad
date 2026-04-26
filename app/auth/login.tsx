@@ -364,6 +364,7 @@ export default function LoginScreen() {
         _id: userData._id,
         name: userData.name,
         email: userData.email,
+        photoUrl: userData.photoUrl,
         createdAt: userData.createdAt,
       });
 
@@ -489,6 +490,7 @@ export default function LoginScreen() {
         _id: userData._id,
         name: userData.name,
         email: userData.email,
+        photoUrl: userData.photoUrl,
         createdAt: userData.createdAt,
       });
 

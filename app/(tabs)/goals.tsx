@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal,
-  TextInput, Alert, ActivityIndicator, Platform,
+  TextInput, Alert, ActivityIndicator, Platform, Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -141,11 +141,19 @@ export default function GoalsScreen() {
     <SafeAreaView style={s.container} edges={["top"]}>
       {/* Header */}
       <View style={s.header}>
-        <View>
-          <Text style={s.headerTitle}>{t("goals_title" as any)}</Text>
-          <Text style={s.headerSub}>{t("goals_subtitle" as any)}</Text>
+        <View style={s.headerLeft}>
+          <View style={s.avatarWrap}>
+            {user?.photoUrl ? (
+              <Image source={{ uri: user.photoUrl }} style={s.avatar} />
+            ) : (
+              <View style={[s.avatar, { alignItems: "center", justifyContent: "center", backgroundColor: C.surfaceContainerHigh }]}>
+                <MaterialIcons name="person" size={22} color={C.onSurfaceVariant} />
+              </View>
+            )}
+          </View>
+          <Text style={s.headerTitle}>{user?.name?.split(" ")[0] || t("goals")}</Text>
         </View>
-        <TouchableOpacity activeOpacity={0.7} onPress={() => router.push("/chatbot")} style={{ padding: 8 }}>
+        <TouchableOpacity activeOpacity={0.7} onPress={() => router.push("/chatbot")} style={{ padding: 6 }}>
           <MaterialIcons name="auto-awesome" size={24} color={C.primary} />
         </TouchableOpacity>
       </View>
@@ -312,9 +320,11 @@ export default function GoalsScreen() {
 
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.background },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 },
-  headerTitle: { fontSize: 26, fontWeight: "800", color: C.onSurface, letterSpacing: -0.5 },
-  headerSub: { fontSize: 14, fontWeight: "500", color: C.onSurfaceVariant, marginTop: 2 },
+  headerTitle: { fontSize: 17, fontWeight: "800", color: C.primary, letterSpacing: -0.3 },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 20, paddingVertical: 12 },
+  headerLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
+  avatarWrap: { width: 36, height: 36, borderRadius: 18, overflow: "hidden", backgroundColor: C.surfaceContainerHigh },
+  avatar: { width: "100%", height: "100%" },
   scrollContent: { paddingHorizontal: 20, paddingBottom: 120 },
 
   // Summary

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, Animated } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, Animated, Image } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -8,6 +8,7 @@ import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useDashboardData } from "../../hooks/useDashboardData";
 import { useLanguage } from "../../context/LanguageContext";
+import { useAuth } from "../../context/AuthContext";
 
 // ─── Color Tokens (DailyBoost AI matching) ───
 const C = {
@@ -88,6 +89,7 @@ function translateCategory(category: string, t: any) {
 export default function HistoryScreen() {
   const router = useRouter();
   const { t, language } = useLanguage();
+  const { user } = useAuth();
   const { balance, totalIncome, totalExpense, transactions, isLoading } = useDashboardData();
   const deleteTransaction = useMutation(api.transactions.deleteTransaction);
 
@@ -180,14 +182,22 @@ export default function HistoryScreen() {
     <SafeAreaView style={styles.container} edges={["top"]}>
       {/* ━━━ HEADER ━━━ */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>{t("history") || "Transaction History"}</Text>
-          <Text style={styles.headerSubtitle}>{t("track_in_out") || "Track your income and expenses"}</Text>
+        <View style={styles.headerLeft}>
+          <View style={styles.avatarWrap}>
+            {user?.photoUrl ? (
+              <Image source={{ uri: user.photoUrl }} style={styles.avatar} />
+            ) : (
+              <View style={[styles.avatar, { alignItems: "center", justifyContent: "center", backgroundColor: C.surfaceContainerHigh }]}>
+                <MaterialIcons name="person" size={22} color={C.onSurfaceVariant} />
+              </View>
+            )}
+          </View>
+          <Text style={styles.headerTitle}>{user?.name?.split(" ")[0] || t("history")}</Text>
         </View>
         <TouchableOpacity 
           activeOpacity={0.7} 
           onPress={() => router.push("/chatbot")}
-          style={{ padding: 8 }}
+          style={{ padding: 6 }}
         >
           <MaterialIcons name="auto-awesome" size={24} color={C.primary} />
         </TouchableOpacity>
@@ -413,20 +423,29 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 12,
+    paddingVertical: 12,
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  avatarWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    overflow: "hidden",
+    backgroundColor: C.surfaceContainerHigh,
+  },
+  avatar: {
+    width: "100%",
+    height: "100%",
   },
   headerTitle: {
-    fontSize: 26,
+    fontSize: 17,
     fontWeight: "800",
-    color: C.onSurface,
-    letterSpacing: -0.5,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: C.onSurfaceVariant,
-    marginTop: 4,
+    color: C.primary,
+    letterSpacing: -0.3,
   },
   summaryRow: {
     flexDirection: "row",

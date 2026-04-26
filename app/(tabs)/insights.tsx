@@ -56,30 +56,26 @@ export default function InsightsScreen() {
 
   return (
     <SafeAreaView style={st.container} edges={["top"]}>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={st.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={st.header}>
-          <View style={st.headerLeft}>
-            <View style={st.avatarWrap}>
-              {user?.photoUrl ? (
-                <Image source={{ uri: user.photoUrl }} style={st.avatar} />
-              ) : (
-                <View style={[st.avatar, { alignItems: "center", justifyContent: "center", backgroundColor: C.surfaceContainerHigh }]}>
-                  <MaterialIcons name="person" size={22} color={C.onSurfaceVariant} />
-                </View>
-              )}
-            </View>
-            <Text style={st.headerTitle}>{user?.name?.split(" ")[0] || t("insights")}</Text>
+      {/* Header */}
+      <View style={[st.header, { paddingHorizontal: 20 }]}>
+        <View style={st.headerLeft}>
+          <View style={st.avatarWrap}>
+            {user?.photoUrl ? (
+              <Image source={{ uri: user.photoUrl }} style={st.avatar} />
+            ) : (
+              <View style={[st.avatar, { alignItems: "center", justifyContent: "center", backgroundColor: C.surfaceContainerHigh }]}>
+                <MaterialIcons name="person" size={22} color={C.onSurfaceVariant} />
+              </View>
+            )}
           </View>
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <TouchableOpacity activeOpacity={0.7} style={{ padding: 6, marginRight: 8 }} onPress={() => router.push("/chatbot")}>
-              <MaterialIcons name="auto-awesome" size={24} color={C.primary} />
-            </TouchableOpacity>
-            <TouchableOpacity activeOpacity={0.7} style={{ padding: 6 }} onPress={() => generateNewInsight()} disabled={isGenerating}>
-              {isGenerating ? <ActivityIndicator size="small" color={C.primary} /> : <MaterialIcons name="refresh" size={24} color={C.primary} />}
-            </TouchableOpacity>
-          </View>
+          <Text style={st.headerTitle}>{user?.name?.split(" ")[0] || t("insights")}</Text>
         </View>
+        <TouchableOpacity activeOpacity={0.7} style={{ padding: 6 }} onPress={() => router.push("/chatbot")}>
+          <MaterialIcons name="auto-awesome" size={24} color={C.primary} />
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={st.scrollContent} showsVerticalScrollIndicator={false}>
 
         {/* Hero */}
         <View style={st.heroSection}>
@@ -148,8 +144,15 @@ export default function InsightsScreen() {
         {/* AI Insight Card */}
         <View style={st.aiCard}>
           <View style={st.aiHeader}>
-            <MaterialIcons name="lightbulb" size={18} color="#88153e" />
-            <Text style={st.aiHeaderText}>{t("ins_ai_label")}</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", flex: 1 }}>
+              <MaterialIcons name="lightbulb" size={18} color="#88153e" />
+              <Text style={st.aiHeaderText}>{t("ins_ai_label")}</Text>
+            </View>
+            {hasTransactions && (
+              <TouchableOpacity onPress={() => generateNewInsight()} disabled={isGenerating} activeOpacity={0.7} style={{ padding: 4 }}>
+                <MaterialIcons name="refresh" size={20} color={isGenerating ? "#d4a0b0" : "#88153e"} />
+              </TouchableOpacity>
+            )}
           </View>
           {isGenerating ? (
             <View style={{ paddingVertical: 20, alignItems: "center", gap: 12 }}>
@@ -222,7 +225,7 @@ const st = StyleSheet.create({
   scrollContent: { paddingHorizontal: 20, paddingBottom: 120 },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 12 },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
-  avatarWrap: { width: 34, height: 34, borderRadius: 17, overflow: "hidden", backgroundColor: C.surfaceContainerHigh },
+  avatarWrap: { width: 36, height: 36, borderRadius: 18, overflow: "hidden", backgroundColor: C.surfaceContainerHigh },
   avatar: { width: "100%", height: "100%" },
   headerTitle: { fontSize: 17, fontWeight: "800", color: C.primary, letterSpacing: -0.3 },
 

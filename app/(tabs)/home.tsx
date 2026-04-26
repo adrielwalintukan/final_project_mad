@@ -184,36 +184,37 @@ export default function HomeScreen() {
   const activeGoal = goals.length > 0 ? goals[0] : null;
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
+      {/* ━━━ HEADER ━━━ */}
+      <View style={[styles.header, { paddingHorizontal: 20 }]}>
+        <View style={styles.headerLeft}>
+          <View style={styles.avatarWrap}>
+            {user?.photoUrl ? (
+              <Image
+                source={{ uri: user.photoUrl }}
+                style={styles.avatar}
+              />
+            ) : (
+              <View style={[styles.avatar, { alignItems: "center", justifyContent: "center", backgroundColor: C.surfaceContainerHigh }]}>
+                <MaterialIcons name="person" size={22} color={C.onSurfaceVariant} />
+              </View>
+            )}
+          </View>
+          <Text style={styles.brandName}>{user?.name?.split(" ")[0] || "DailyBoost"}</Text>
+        </View>
+        <TouchableOpacity 
+          activeOpacity={0.7} 
+          style={styles.headerAction}
+          onPress={() => router.push("/chatbot")}
+        >
+          <MaterialIcons name="auto-awesome" size={24} color={C.primary} />
+        </TouchableOpacity>
+      </View>
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ━━━ HEADER ━━━ */}
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <View style={styles.avatarWrap}>
-              {user?.photoUrl ? (
-                <Image
-                  source={{ uri: user.photoUrl }}
-                  style={styles.avatar}
-                />
-              ) : (
-                <View style={[styles.avatar, { alignItems: "center", justifyContent: "center", backgroundColor: C.surfaceContainerHigh }]}>
-                  <MaterialIcons name="person" size={22} color={C.onSurfaceVariant} />
-                </View>
-              )}
-            </View>
-            <Text style={styles.brandName}>{user?.name?.split(" ")[0] || "Editorial Intelligence"}</Text>
-          </View>
-          <TouchableOpacity 
-            activeOpacity={0.7} 
-            style={styles.headerAction}
-            onPress={() => router.push("/chatbot")}
-          >
-            <MaterialIcons name="auto-awesome" size={24} color={C.primary} />
-          </TouchableOpacity>
-        </View>
 
         {/* ━━━ HERO BALANCE ━━━ */}
         <View style={styles.heroSection}>
@@ -475,9 +476,9 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   avatarWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     overflow: "hidden",
     backgroundColor: C.surfaceContainerHigh,
   },
