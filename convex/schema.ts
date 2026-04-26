@@ -2,6 +2,8 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+  // Trigger refresh
+
   // Users table — supports email and Google auth
   users: defineTable({
     name: v.string(),
@@ -69,4 +71,23 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_type", ["userId", "type"]),
+
+  // Chatbot Conversations table
+  chatbot_conversations: defineTable({
+    userId: v.id("users"),
+    title: v.string(),
+    model: v.string(),
+    updatedAt: v.number(),
+  }).index("by_user", ["userId"]),
+
+  // Chatbot Messages table — conversation history
+  chatbot_messages: defineTable({
+    userId: v.id("users"),
+    conversationId: v.id("chatbot_conversations"),
+    role: v.union(v.literal("user"), v.literal("model")),
+    content: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_conversation", ["conversationId"]),
 });
