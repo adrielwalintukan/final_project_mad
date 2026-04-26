@@ -90,7 +90,7 @@ function translateCategory(category: string, t: any) {
 export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { balance, totalIncome, totalExpense, transactions, goals, isEmpty, isLoading } = useDashboardData();
   
   const summaryData = useFinancialSummary(transactions);
@@ -108,7 +108,7 @@ export default function HomeScreen() {
      setIsGeneratingAi(true);
      setAiError(null);
      try {
-       const result = await generateSmartFinancialInsight(summaryData, transactions);
+       const result = await generateSmartFinancialInsight(summaryData, transactions, language);
        await saveAiLog({
          userId: user._id as Id<"users">,
          type: "daily_insight",
@@ -117,7 +117,7 @@ export default function HomeScreen() {
        });
      } catch (error: any) {
        console.warn("Home AI Insight Error:", error);
-       setAiError("Analisis sedang sibuk. Silakan coba beberapa saat lagi.");
+       setAiError(t("ai_error_busy"));
      } finally {
        setIsGeneratingAi(false);
      }
@@ -163,7 +163,7 @@ export default function HomeScreen() {
   const handleAiAction = () => {
     switch(aiData.suggestedAction) {
       case "create_budget":
-        Alert.alert("Coming Soon", "Fitur pembuatan budget sedang dalam pengembangan.");
+        router.push("/createBudget");
         break;
       case "add_transaction":
         router.push("/addTransaction");
@@ -219,7 +219,7 @@ export default function HomeScreen() {
         <View style={styles.heroSection}>
           <View style={styles.statusDot}>
             <View style={styles.dot} />
-            <Text style={styles.statusLabel}>{"Saldo Keuangan Anda"}</Text>
+            <Text style={styles.statusLabel}>{t("home_balance_label" as any)}</Text>
           </View>
           <Text 
             style={styles.heroAmount}
@@ -234,7 +234,7 @@ export default function HomeScreen() {
                 <MaterialIcons name="arrow-downward" size={18} color={C.primary} />
               </View>
               <View>
-                <Text style={styles.incExpLabel}>{"Pemasukan"}</Text>
+                <Text style={styles.incExpLabel}>{t("home_income" as any)}</Text>
                 <Text style={styles.incExpAmount}>{"Rp " + totalIncome.toLocaleString("id-ID")}</Text>
               </View>
             </View>
@@ -244,7 +244,7 @@ export default function HomeScreen() {
                 <MaterialIcons name="arrow-upward" size={18} color={C.tertiary} />
               </View>
               <View>
-                <Text style={styles.incExpLabel}>{"Pengeluaran"}</Text>
+                <Text style={styles.incExpLabel}>{t("home_expense" as any)}</Text>
                 <Text style={styles.incExpAmount}>{"Rp " + totalExpense.toLocaleString("id-ID")}</Text>
               </View>
             </View>
@@ -259,7 +259,7 @@ export default function HomeScreen() {
                 <MaterialIcons name="lightbulb" size={16} color="#88153e" />
               </View>
               <Text style={{ fontSize: 11, fontWeight: "800", color: "#88153e", textTransform: "uppercase", letterSpacing: 1.5 }}>
-                Fragmen Kecerdasan
+                {t("home_ai_fragment" as any)}
               </Text>
               {!isEmpty && (
                 <TouchableOpacity onPress={handleRefreshInsight} disabled={isGeneratingAi} activeOpacity={0.7} style={{ marginLeft: "auto", padding: 4 }}>
@@ -271,21 +271,21 @@ export default function HomeScreen() {
             {isEmpty ? (
               <View>
                 <Text style={{ fontSize: 24, fontWeight: "800", color: "#5a0f2a", lineHeight: 30, marginBottom: 12 }}>
-                  Pemantauan aktivitas aktif.
+                  {t("activity_monitoring" as any)}
                 </Text>
                 <Text style={{ fontSize: 15, color: "#88153e", lineHeight: 22, marginBottom: 18, opacity: 0.7 }}>
-                  Belum ada wawasan baru saat ini. Terus catat anggaran Anda!
+                  {t("no_new_insights" as any)}
                 </Text>
                 <TouchableOpacity 
                    onPress={() => router.push("/addTransaction")}
                    style={{ backgroundColor: "#ffffff", paddingVertical: 12, paddingHorizontal: 20, borderRadius: 14, alignSelf: "flex-start", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 }}>
-                  <Text style={{ color: "#5a0f2a", fontWeight: "800", fontSize: 14 }}>Tambah Transaksi</Text>
+                  <Text style={{ color: "#5a0f2a", fontWeight: "800", fontSize: 14 }}>{t("add_transaction" as any)}</Text>
                 </TouchableOpacity>
               </View>
             ) : isGeneratingAi ? (
               <View style={{ paddingVertical: 16, alignItems: "center", justifyContent: "center", gap: 12, minHeight: 80 }}>
                  <ActivityIndicator size="small" color="#88153e" />
-                 <Text style={{ fontSize: 13, color: "#88153e", opacity: 0.7 }}>Menganalisis pengeluaran Anda...</Text>
+                 <Text style={{ fontSize: 13, color: "#88153e", opacity: 0.7 }}>{t("home_ai_analyzing" as any)}</Text>
               </View>
             ) : aiError ? (
               <View style={{ paddingVertical: 16, alignItems: "center", justifyContent: "center", gap: 8, minHeight: 80 }}>
@@ -295,13 +295,13 @@ export default function HomeScreen() {
                    onPress={handleRefreshInsight}
                    style={{ marginTop: 8, backgroundColor: "#ffffff", paddingVertical: 8, paddingHorizontal: 14, borderRadius: 10 }}
                  >
-                   <Text style={{ fontSize: 12, fontWeight: "700", color: "#88153e" }}>Coba Lagi</Text>
+                   <Text style={{ fontSize: 12, fontWeight: "700", color: "#88153e" }}>{t("review_insight" as any)}</Text>
                  </TouchableOpacity>
               </View>
             ) : (
               <View>
                 <Text style={{ fontSize: 24, fontWeight: "800", color: "#5a0f2a", lineHeight: 30, marginBottom: 12 }}>
-                  Wawasan keuangan Anda.
+                  {t("intelligence_fragment" as any)}
                 </Text>
                 <Text style={{ fontSize: 15, color: "#88153e", lineHeight: 22, opacity: 0.7, marginBottom: 18 }}>
                   {aiData.message || "Terus catat anggaran Anda!"}

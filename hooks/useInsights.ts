@@ -4,6 +4,7 @@ import { api } from "../convex/_generated/api";
 import { useAuth } from "../context/AuthContext";
 import { useFinancialSummary } from "./useFinancialSummary";
 import { generateSmartFinancialInsight } from "../services/gemini";
+import { useLanguage } from "../context/LanguageContext";
 
 export interface AIInsight {
   message: string;
@@ -13,6 +14,7 @@ export interface AIInsight {
 
 export function useInsights() {
   const { user } = useAuth();
+  const { language } = useLanguage();
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,7 +47,7 @@ export function useInsights() {
     setError(null);
     
     try {
-      const result = await generateSmartFinancialInsight(summary, transactions);
+      const result = await generateSmartFinancialInsight(summary, transactions, language);
       const parsed = JSON.parse(result) as AIInsight;
       
       // Save to database

@@ -63,7 +63,7 @@ function formatCurrency(num: number) {
   return { whole, cents: parts[1] };
 }
 
-function getDateLabel(timestamp: number, t: any) {
+function getDateLabel(timestamp: number, t: any, language: string) {
   const d = new Date(timestamp);
   const now = new Date();
   
@@ -75,7 +75,8 @@ function getDateLabel(timestamp: number, t: any) {
   const isYesterday = d.getDate() === yesterday.getDate() && d.getMonth() === yesterday.getMonth() && d.getFullYear() === yesterday.getFullYear();
   if (isYesterday) return t("yesterday") || "Yesterday";
   
-  return d.toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' });
+  const locale = language === "en" ? "en-US" : "id-ID";
+  return d.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 function translateCategory(category: string, t: any) {
@@ -86,7 +87,7 @@ function translateCategory(category: string, t: any) {
 
 export default function HistoryScreen() {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { balance, totalIncome, totalExpense, transactions, isLoading } = useDashboardData();
   const deleteTransaction = useMutation(api.transactions.deleteTransaction);
 
@@ -146,7 +147,7 @@ export default function HistoryScreen() {
     const groups: { title: string, data: typeof transactions }[] = [];
     
     filteredTransactions.forEach(tx => {
-      const label = getDateLabel(tx.createdAt, t);
+      const label = getDateLabel(tx.createdAt, t, language);
       let g = groups.find(x => x.title === label);
       if (!g) {
         g = { title: label, data: [] };
@@ -202,7 +203,7 @@ export default function HistoryScreen() {
               <MaterialIcons name="account-balance-wallet" size={16} color={C.onSurface} />
             </View>
           </View>
-          <Text style={styles.summaryLabel} numberOfLines={1}>Saldo</Text>
+          <Text style={styles.summaryLabel} numberOfLines={1}>{t("net_balance")}</Text>
           <Text style={[styles.summaryValue, { color: balance >= 0 ? C.primary : C.error }]} numberOfLines={1} adjustsFontSizeToFit>
             {balance < 0 ? "-" : ""}Rp {formatCurrency(Math.abs(balance)).whole}
           </Text>
@@ -213,7 +214,7 @@ export default function HistoryScreen() {
               <MaterialIcons name="trending-up" size={16} color={C.primary} />
             </View>
           </View>
-          <Text style={styles.summaryLabel} numberOfLines={1}>Masuk</Text>
+          <Text style={styles.summaryLabel} numberOfLines={1}>{t("income")}</Text>
           <Text style={[styles.summaryValue, { color: C.primary }]} numberOfLines={1} adjustsFontSizeToFit>
             Rp {formatCurrency(totalIncome).whole}
           </Text>
@@ -224,7 +225,7 @@ export default function HistoryScreen() {
               <MaterialIcons name="trending-down" size={16} color={C.tertiary} />
             </View>
           </View>
-          <Text style={styles.summaryLabel} numberOfLines={1}>Keluar</Text>
+          <Text style={styles.summaryLabel} numberOfLines={1}>{t("expense")}</Text>
           <Text style={[styles.summaryValue, { color: C.tertiary }]} numberOfLines={1} adjustsFontSizeToFit>
             Rp {formatCurrency(totalExpense).whole}
           </Text>
@@ -237,10 +238,10 @@ export default function HistoryScreen() {
           <View style={styles.categoryBreakdownHeader}>
             <MaterialIcons name="pie-chart" size={18} color={C.primary} />
             <Text style={styles.categoryBreakdownTitle}>
-              Ringkasan Kategori
+              {t("hist_cat_summary")}
             </Text>
             <Text style={styles.categoryBreakdownCount}>
-              {categorySummary.length} kategori
+              {categorySummary.length} {t("hist_cat_count")}
             </Text>
           </View>
           <View style={{ overflow: "hidden" }}>
@@ -276,7 +277,7 @@ export default function HistoryScreen() {
                       />
                     </View>
                     <Text style={styles.catBreakdownMeta}>
-                      {cat.count} transaksi · {pct.toFixed(1)}%
+                      {cat.count} {t("hist_transactions")} · {pct.toFixed(1)}%
                     </Text>
                   </View>
                 </View>
@@ -299,7 +300,7 @@ export default function HistoryScreen() {
               activeOpacity={0.7}
             >
               <Text style={styles.catExpandText}>
-                {categoryExpanded ? "Tampilkan Lebih Sedikit" : `Lihat Semua (${categorySummary.length})`}
+                {categoryExpanded ? t("show_less") : `${t("see_all_count")} (${categorySummary.length})`}
               </Text>
               <MaterialIcons
                 name={categoryExpanded ? "keyboard-arrow-up" : "keyboard-arrow-down"}

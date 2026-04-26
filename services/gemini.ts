@@ -40,11 +40,14 @@ async function fetchWithRetry(
 
 export async function generateSmartFinancialInsight(
   summaryData: FinancialSummary,
-  recentTransactions: any[]
+  recentTransactions: any[],
+  language: "en" | "id" = "id"
 ): Promise<string> {
   if (!GEMINI_API_KEY) {
     throw new Error("Missing EXPO_PUBLIC_GEMINI_API_KEY environment variable. Cannot call Gemini API.");
   }
+
+  const langName = language === "en" ? "English" : "Indonesian";
 
   // Format the prompt with user's financial contextual data
   const prompt = `
@@ -52,19 +55,19 @@ Act as a smart, professional personal finance assistant for an Indonesian platfo
 Analyze the user's recent financial data and provide a personalized financial insight.
 
 Rules to strictly follow:
-1. Output MUST be in Indonesian.
+1. Output MUST be in ${langName}.
 2. Output strictly a JSON object using the exact schema below, DO NOT wrap it in markdown block quotes.
 3. The "message" field must be extremely concise and TO THE POINT (maximum 3-4 sentences total).
 4. NO greetings or introductory phrases. Start immediately with the core insight.
 5. NO markdown formatting at all inside the message field.
 6. Look at the spending pattern. If a specific category dominates, set "suggestedAction" to "create_budget". If no transactions exist, suggest "add_transaction". If there's plenty of savings, suggest "view_goals". Else set to "none".
-7. Make "actionLabel" an actionable short text in Indonesian, e.g. "Buat Budget", "Tambah Transaksi", etc.
+7. Make "actionLabel" an actionable short text in ${langName}, e.g. "Create Budget" / "Buat Budget", "Add Transaction" / "Tambah Transaksi", etc.
 
 EXPECTED JSON SCHEMA:
 {
-  "message": "<your sharp, actionable financial insight>",
+  "message": "<your sharp, actionable financial insight in ${langName}>",
   "suggestedAction": "create_budget" | "add_transaction" | "view_goals" | "none",
-  "actionLabel": "<short button label>"
+  "actionLabel": "<short button label in ${langName}>"
 }
 
 Here is the user's data context:

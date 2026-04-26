@@ -69,7 +69,7 @@ export default function InsightsScreen() {
                 </View>
               )}
             </View>
-            <Text style={st.headerTitle}>{user?.name?.split(" ")[0] || "Wawasan"}</Text>
+            <Text style={st.headerTitle}>{user?.name?.split(" ")[0] || t("insights")}</Text>
           </View>
           <View style={{ flexDirection: "row", alignItems: "center" }}>
             <TouchableOpacity activeOpacity={0.7} style={{ padding: 6, marginRight: 8 }} onPress={() => router.push("/chatbot")}>
@@ -84,41 +84,41 @@ export default function InsightsScreen() {
         {/* Hero */}
         <View style={st.heroSection}>
           <View style={st.badge}>
-            <Text style={st.badgeText}>{"WAWASAN ATELIER"}</Text>
+            <Text style={st.badgeText}>{t("ins_badge")}</Text>
           </View>
-          <Text style={st.heroTitle}>{"Kesehatan\nKeuangan"}</Text>
+          <Text style={st.heroTitle}>{t("ins_hero_title")}</Text>
           <Text style={st.heroSub}>
-            {"Rasio tabungan Anda "}
+            {t("ins_hero_sub_pre")}
             <Text style={st.heroHighlight}>{dashboardData?.performancePercentage}%</Text>
-            {" bulan ini"}
+            {t("ins_hero_sub_post")}
           </Text>
         </View>
 
         {/* Monthly Summary Card */}
         <LinearGradient colors={[C.primary, C.primaryContainer]} style={st.monthCard} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-          <Text style={st.monthCardLabel}>{"RINGKASAN BULAN INI"}</Text>
+          <Text style={st.monthCardLabel}>{t("ins_month_label")}</Text>
           <View style={st.monthRow}>
             <View style={st.monthItem}>
               <Text style={st.monthValue}>{formatRp(dashboardData?.thisMonthIncome || 0)}</Text>
-              <Text style={st.monthLabel}>{"Pemasukan"}</Text>
+              <Text style={st.monthLabel}>{t("ins_month_income")}</Text>
             </View>
             <View style={st.monthDivider} />
             <View style={st.monthItem}>
               <Text style={st.monthValue}>{formatRp(dashboardData?.thisMonthExpense || 0)}</Text>
-              <Text style={st.monthLabel}>{"Pengeluaran"}</Text>
+              <Text style={st.monthLabel}>{t("ins_month_expense")}</Text>
             </View>
           </View>
         </LinearGradient>
 
         {/* Spending Analysis Card */}
         <View style={st.card}>
-          <Text style={st.cardTitle}>{"Analisis Pengeluaran"}</Text>
-          <Text style={st.cardSub}>{"Alokasi pengeluaran terkurasi"}</Text>
+          <Text style={st.cardTitle}>{t("ins_spending_title")}</Text>
+          <Text style={st.cardSub}>{t("ins_spending_sub")}</Text>
           <View style={st.spendingRow}>
             <View style={st.donutCircle}>
               <View style={st.donutInner}>
                 <Text style={st.donutTotal}>{formatRp(dashboardData?.spendingMetrics.total || 0)}</Text>
-                <Text style={st.donutLabel}>{"TOTAL"}</Text>
+                <Text style={st.donutLabel}>{t("ins_donut_total")}</Text>
               </View>
               <View style={[st.arc, st.arcLifestyle]} />
               <View style={[st.arc, st.arcEssentials]} />
@@ -126,7 +126,11 @@ export default function InsightsScreen() {
             </View>
             <View style={st.legendContainer}>
               {dashboardData?.spendingMetrics.breakdown.map((item: any, idx: number) => {
-                const labels: Record<string, string> = { Lifestyle: "Gaya Hidup", Essentials: "Kebutuhan", Growth: "Pertumbuhan" };
+                const labels: Record<string, string> = { 
+                  Lifestyle: t("ins_cat_lifestyle"), 
+                  Essentials: t("ins_cat_essentials"), 
+                  Growth: t("ins_cat_growth") 
+                };
                 return (
                   <View key={idx} style={st.legendItem}>
                     <View style={[st.legendDot, { backgroundColor: item.color }]} />
@@ -145,12 +149,12 @@ export default function InsightsScreen() {
         <View style={st.aiCard}>
           <View style={st.aiHeader}>
             <MaterialIcons name="lightbulb" size={18} color="#88153e" />
-            <Text style={st.aiHeaderText}>{"FRAGMEN KECERDASAN"}</Text>
+            <Text style={st.aiHeaderText}>{t("ins_ai_label")}</Text>
           </View>
           {isGenerating ? (
             <View style={{ paddingVertical: 20, alignItems: "center", gap: 12 }}>
               <ActivityIndicator size="small" color="#88153e" />
-              <Text style={{ fontSize: 13, color: "#88153e", opacity: 0.7 }}>{"Menganalisis data finansial Anda..."}</Text>
+              <Text style={{ fontSize: 13, color: "#88153e", opacity: 0.7 }}>{t("ins_ai_analyzing")}</Text>
             </View>
           ) : latestInsight ? (
             <View>
@@ -159,7 +163,7 @@ export default function InsightsScreen() {
                 <TouchableOpacity
                   activeOpacity={0.8}
                   onPress={() => {
-                    if (latestInsight.suggestedAction === "create_budget") router.push("/(tabs)/home");
+                    if (latestInsight.suggestedAction === "create_budget") router.push("/createBudget");
                     if (latestInsight.suggestedAction === "add_transaction") router.push("/addTransaction");
                     if (latestInsight.suggestedAction === "view_goals") router.push("/(tabs)/goals");
                   }}
@@ -172,11 +176,11 @@ export default function InsightsScreen() {
           ) : (
             <View>
               <Text style={st.aiMessage}>
-                {hasTransactions ? "Klik refresh untuk mendapatkan wawasan cerdas dari AI." : "Mulai tambahkan transaksi untuk mendapatkan wawasan AI."}
+                {hasTransactions ? t("ins_ai_refresh") : t("ins_ai_no_tx")}
               </Text>
               {hasTransactions && (
                 <TouchableOpacity activeOpacity={0.8} onPress={() => generateNewInsight()} style={st.aiBtn}>
-                  <Text style={st.aiBtnText}>{"Dapatkan Wawasan AI"}</Text>
+                  <Text style={st.aiBtnText}>{t("ins_ai_get_btn")}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -184,7 +188,7 @@ export default function InsightsScreen() {
         </View>
 
         {/* Quick Stats Grid */}
-        <Text style={st.sectionTitle}>{"Metrik Keuangan"}</Text>
+        <Text style={st.sectionTitle}>{t("ins_metrics_title")}</Text>
         <View style={st.statsGrid}>
           {dashboardData?.quickStats?.map((item: any) => (
             <View key={item.id} style={st.statCard}>
