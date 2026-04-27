@@ -85,12 +85,12 @@ ${recentTransactions.slice(0, 5).map(tx => `- ${tx.category}: Rp ${tx.amount.toL
 
   try {
     // Try Primary Model (2.5-flash)
-    let response = await fetchWithRetry(prompt, "gemini-3.1-flash-lite-preview", GEMINI_API_KEY);
+    let response = await fetchWithRetry(prompt, "gemma-3-27b-it", GEMINI_API_KEY);
 
     // If Primary fails with 503 after retries, try Fallback Model
     if (!response.ok && response.status === 503) {
-      console.warn("Primary Gemini 2.5-flash busy, falling back to 1.5-flash...");
-      response = await fetchWithRetry(prompt, "gemini-3.1-flash-lite-preview", GEMINI_API_KEY);
+      console.warn("Primary gemma-3-27b-it busy, falling back to gemma-4-26b-it");
+      response = await fetchWithRetry(prompt, "gemma-4-26b-it", GEMINI_API_KEY);
     }
 
     const data = await response.json();

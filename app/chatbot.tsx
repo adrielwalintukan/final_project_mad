@@ -216,6 +216,9 @@ export default function ChatbotScreen() {
     return (
       <View>
         {content.split("\n").map((line, index, arr) => {
+          if (line.trim() === "") {
+            return <View key={index} style={{ height: 6 }} />;
+          }
           if (line.trim().startsWith("🟢")) {
             return (
               <View key={index} style={styles.highlightRow}>
@@ -235,7 +238,7 @@ export default function ChatbotScreen() {
             );
           }
           return (
-            <Text key={index} style={[styles.bubbleText, styles.textModel, { marginBottom: index < arr.length - 1 ? 8 : 0 }]}>
+            <Text key={index} style={[styles.bubbleText, styles.textModel, { marginBottom: index < arr.length - 1 ? 4 : 0 }]}>
               {line}
             </Text>
           );
@@ -246,7 +249,7 @@ export default function ChatbotScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.flex}>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.flex}>
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
@@ -274,14 +277,6 @@ export default function ChatbotScreen() {
         </View>
 
         <ScrollView ref={scrollViewRef} style={styles.flex} contentContainerStyle={styles.chatContent}>
-          <View style={styles.contentModelPicker}>
-            <TouchableOpacity style={styles.modelDropdown} onPress={() => setShowModelPicker(true)}>
-              <MaterialIcons name="auto-awesome" size={16} color={C.primary} />
-              <Text style={styles.modelDropdownText}>{selectedModel.label}</Text>
-              <MaterialIcons name="keyboard-arrow-down" size={20} color={C.outline} />
-            </TouchableOpacity>
-          </View>
-
           {localMessages.map((msg) => {
             const isUser = msg.role === "user";
             return (
@@ -330,6 +325,13 @@ export default function ChatbotScreen() {
               </LinearGradient>
             </TouchableOpacity>
           </View>
+          <View style={styles.bottomModelPicker}>
+            <TouchableOpacity style={styles.bottomModelDropdown} onPress={() => setShowModelPicker(true)}>
+              <MaterialIcons name="auto-awesome" size={14} color={C.primary} />
+              <Text style={styles.bottomModelDropdownText}>{selectedModel.label}</Text>
+              <MaterialIcons name="keyboard-arrow-down" size={16} color={C.outline} />
+            </TouchableOpacity>
+          </View>
         </View>
       </KeyboardAvoidingView>
 
@@ -372,8 +374,8 @@ export default function ChatbotScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.background },
-  flex: { flex: 1 },
+  container: { flex: 1, backgroundColor: C.surface },
+  flex: { flex: 1, backgroundColor: C.background },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 20, paddingVertical: 12, backgroundColor: C.surface },
   headerLeft: { flexDirection: "row", alignItems: "center", gap: 10 },
   headerActions: { flexDirection: "row", alignItems: "center", gap: 8 },
@@ -384,9 +386,9 @@ const styles = StyleSheet.create({
   onlineDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#4caf50", marginRight: 4 },
   statusLabel: { fontSize: 10, fontWeight: "700", color: "#4caf50", textTransform: "uppercase" },
   headerAction: { padding: 6 },
-  contentModelPicker: { alignItems: "center", marginBottom: 20, marginTop: 4 },
-  modelDropdown: { flexDirection: "row", alignItems: "center", backgroundColor: C.surface, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, gap: 8, borderWidth: 1, borderColor: C.surfaceContainerHigh, elevation: 2 },
-  modelDropdownText: { fontSize: 13, fontWeight: "700", color: C.onSurface },
+  bottomModelPicker: { flexDirection: "row", justifyContent: "flex-start", marginTop: 8, paddingHorizontal: 4 },
+  bottomModelDropdown: { flexDirection: "row", alignItems: "center", backgroundColor: "rgba(13, 99, 27, 0.08)", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, gap: 4 },
+  bottomModelDropdownText: { fontSize: 12, fontWeight: "700", color: C.primary },
   chatContent: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 24 },
   msgRow: { flexDirection: "row", marginBottom: 20, maxWidth: "85%" },
   msgRowUser: { alignSelf: "flex-end" },
@@ -408,8 +410,8 @@ const styles = StyleSheet.create({
   typingDots: { flexDirection: "row", alignItems: "center", gap: 4 },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: C.primary },
   dot1: { opacity: 0.3 }, dot2: { opacity: 0.6 }, dot3: { opacity: 0.9 },
-  inputBar: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: Platform.OS === "ios" ? 28 : 16, backgroundColor: C.surface, borderTopWidth: 1, borderTopColor: C.surfaceContainerHigh },
-  inputWrap: { flexDirection: "row", alignItems: "flex-end", backgroundColor: C.background, borderRadius: 24, paddingHorizontal: 16, paddingVertical: 8, borderWidth: 1, borderColor: C.outlineVariant },
+  inputBar: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: Platform.OS === "ios" ? 24 : 12, backgroundColor: C.surface, borderTopWidth: 1, borderTopColor: C.surfaceContainerHigh },
+  inputWrap: { flexDirection: "row", alignItems: "flex-end", backgroundColor: C.background, borderRadius: 24, paddingHorizontal: 16, paddingVertical: 8, borderWidth: 1, borderColor: "transparent" },
   input: { flex: 1, maxHeight: 120, fontSize: 15, color: C.onSurface, paddingTop: 8, paddingBottom: 8 },
   sendBtn: { marginLeft: 10, marginBottom: 2 },
   highlightRow: { flexDirection: "row", alignItems: "flex-start", backgroundColor: "#e8f5e9", padding: 10, borderRadius: 12, marginVertical: 6, gap: 8 },
