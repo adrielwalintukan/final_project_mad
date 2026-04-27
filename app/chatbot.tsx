@@ -338,7 +338,7 @@ export default function ChatbotScreen() {
       <Modal visible={showModelPicker} transparent animationType="fade">
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowModelPicker(false)}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Pilih Model AI</Text>
+            <Text style={[styles.modalTitle, { marginBottom: 16 }]}>Pilih Model AI</Text>
             {AVAILABLE_MODELS.map((m) => (
               <TouchableOpacity key={m.id} style={[styles.modelOption, selectedModel.id === m.id && styles.modelOptionActive]} onPress={() => { setSelectedModel(m); setShowModelPicker(false); }}>
                 <View style={styles.modelOptionLeft}><MaterialIcons name="auto-awesome" size={20} color={selectedModel.id === m.id ? C.primary : C.outline} /><Text style={[styles.modelOptionText, selectedModel.id === m.id && styles.modelOptionTextActive]}>{m.label}</Text></View>

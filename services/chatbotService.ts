@@ -12,6 +12,7 @@ export interface ModelOption {
 export const AVAILABLE_MODELS: ModelOption[] = [
   { id: "flash-lite", label: "Gemini 3.1 Flash Lite", modelName: "gemini-3.1-flash-lite-preview" },
   { id: "flash", label: "Gemini 2.5 Flash", modelName: "gemini-2.5-flash" },
+  { id: "flash-lite-2-5", label: "Gemini 2.5 Flash Lite", modelName: "gemini-2.5-flash-lite" },
   { id: "gemma", label: "Gemma 4 26B", modelName: "gemma-3-27b-it" },
 ];
 
