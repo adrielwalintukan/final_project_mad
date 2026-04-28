@@ -13,6 +13,7 @@ import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import { useInsights } from "../../hooks/useInsights";
 import { MaterialIcons } from "@expo/vector-icons";
+import Svg, { Circle } from "react-native-svg";
 
 const C = {
   primary: "#0d631b", primaryContainer: "#2e7d32", primaryFixed: "#a3f69c",
@@ -111,14 +112,51 @@ export default function InsightsScreen() {
           <Text style={st.cardTitle}>{t("ins_spending_title")}</Text>
           <Text style={st.cardSub}>{t("ins_spending_sub")}</Text>
           <View style={st.spendingRow}>
-            <View style={st.donutCircle}>
+            <View style={{ width: 130, height: 130, position: "relative", alignItems: "center", justifyContent: "center" }}>
               <View style={st.donutInner}>
                 <Text style={st.donutTotal}>{formatRp(dashboardData?.spendingMetrics.total || 0)}</Text>
                 <Text style={st.donutLabel}>{t("ins_donut_total")}</Text>
               </View>
-              <View style={[st.arc, st.arcLifestyle]} />
-              <View style={[st.arc, st.arcEssentials]} />
-              <View style={[st.arc, st.arcGrowth]} />
+              {(() => {
+                const total = dashboardData?.spendingMetrics?.total || 0;
+                const breakdown = dashboardData?.spendingMetrics?.breakdown || [];
+                const radius = 55;
+                const strokeWidth = 14;
+                const cx = 65;
+                const cy = 65;
+                const circumference = 2 * Math.PI * radius;
+                let currentOffset = 0;
+
+                if (total === 0 || breakdown.length === 0) {
+                  return (
+                    <Svg width={130} height={130}>
+                      <Circle cx={cx} cy={cy} r={radius} stroke={C.surfaceContainerLow} strokeWidth={strokeWidth} fill="none" />
+                    </Svg>
+                  );
+                }
+
+                return (
+                  <Svg width={130} height={130} style={{ transform: [{ rotate: "-90deg" }] }}>
+                    {breakdown.map((item: any, idx: number) => {
+                      if (item.amount === 0) return null;
+                      const percentage = item.amount / total;
+                      const strokeLength = percentage * circumference;
+                      const offset = currentOffset;
+                      currentOffset += strokeLength;
+                      
+                      return (
+                        <Circle
+                          key={idx} cx={cx} cy={cy} r={radius}
+                          stroke={item.color} strokeWidth={strokeWidth}
+                          strokeDasharray={`${strokeLength} ${circumference - strokeLength}`}
+                          strokeDashoffset={-offset}
+                          fill="none"
+                        />
+                      );
+                    })}
+                  </Svg>
+                );
+              })()}
             </View>
             <View style={st.legendContainer}>
               {dashboardData?.spendingMetrics.breakdown.map((item: any, idx: number) => {
@@ -252,10 +290,6 @@ const st = StyleSheet.create({
   donutInner: { alignItems: "center", justifyContent: "center", position: "absolute", zIndex: 10 },
   donutTotal: { fontSize: 14, fontWeight: "800", color: C.onSurface, textAlign: "center" },
   donutLabel: { fontSize: 9, fontWeight: "700", color: C.outline, letterSpacing: 1 },
-  arc: { position: "absolute", top: -12, left: -12, right: -12, bottom: -12, borderRadius: 65, borderWidth: 12, borderColor: "transparent" },
-  arcLifestyle: { borderTopColor: C.primary, borderRightColor: C.primary, transform: [{ rotate: "-45deg" }] },
-  arcEssentials: { borderLeftColor: C.secondary, transform: [{ rotate: "15deg" }] },
-  arcGrowth: { borderBottomColor: C.tertiary, transform: [{ rotate: "45deg" }] },
   legendContainer: { flex: 1, paddingLeft: 20, gap: 14 },
   legendItem: { flexDirection: "row", alignItems: "center", gap: 10 },
   legendDot: { width: 10, height: 10, borderRadius: 5 },

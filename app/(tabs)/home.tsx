@@ -1,6 +1,6 @@
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import React from "react";
 import {
   ActivityIndicator,
@@ -24,6 +24,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import VoiceInputBubble from "../../components/VoiceInputBubble";
+import ReceiptScannerButton from "../../components/ReceiptScannerButton";
 
 const { width } = Dimensions.get("window");
 
@@ -129,38 +130,39 @@ export default function HomeScreen() {
   // Track transaction count to trigger AI refresh on add/remove
   const prevTxCount = React.useRef<number | null>(null);
 
-  React.useEffect(() => {
-    if (isLoading || !user?._id) return;
+  // Auto-refresh AI Insight saat kembali ke Home jika ada transaksi baru
+  const topTxId = transactions.length > 0 ? transactions[0]._id : null;
+  const txLength = transactions.length;
+  
+  useFocusEffect(
+    React.useCallback(() => {
+      if (isLoading || !user?._id) return;
 
-    if (prevTxCount.current === null) {
-      // Initial load
-      prevTxCount.current = transactions.length;
-      // Auto-generate if no log exists and the user has transactions
-      if (!isEmpty && (!aiLogsRaw || aiLogsRaw.length === 0) && !isGeneratingAi) {
-        handleRefreshInsight();
-      }
-    } else if (transactions.length !== prevTxCount.current) {
-      // Subsequent changes: user added/deleted tx
-      const wasAdded = transactions.length > prevTxCount.current;
-      prevTxCount.current = transactions.length;
-      
-      // If a transaction was added, show the Undo banner
-      if (wasAdded && transactions.length > 0) {
-        const latestTx = transactions[0];
-        setUndoTx({ id: latestTx._id as Id<"transactions">, visible: true });
+      if (prevTxCount.current === null) {
+        // Initial load
+        prevTxCount.current = txLength;
+        if (!isEmpty && (!aiLogsRaw || aiLogsRaw.length === 0) && !isGeneratingAi) {
+          handleRefreshInsight();
+        }
+      } else if (txLength !== prevTxCount.current) {
+        const wasAdded = txLength > prevTxCount.current;
+        prevTxCount.current = txLength;
         
-        // Auto-hide after 5 seconds
-        setTimeout(() => {
-          setUndoTx(prev => prev?.id === latestTx._id ? { ...prev, visible: false } : prev);
-        }, 5000);
-      }
+        if (wasAdded && transactions.length > 0) {
+          const latestTx = transactions[0];
+          setUndoTx({ id: latestTx._id as Id<"transactions">, visible: true });
+          
+          setTimeout(() => {
+            setUndoTx(prev => prev?.id === latestTx._id ? { ...prev, visible: false } : prev);
+          }, 5000);
+        }
 
-      // Trigger AI refresh
-      if (!isGeneratingAi && !isEmpty) {
-         handleRefreshInsight();
+        if (!isGeneratingAi && !isEmpty) {
+           handleRefreshInsight();
+        }
       }
-    }
-  }, [transactions.length, isLoading, user?._id]);
+    }, [txLength, topTxId, isLoading, user?._id, isEmpty])
+  );
 
   if (isLoading) {
     return (
@@ -172,11 +174,12 @@ export default function HomeScreen() {
   }
 
   // Safely parse AI JSON response
-  let aiData = { message: "", suggestedAction: "none", actionLabel: "" };
+  let aiData = { headline: "", message: "", suggestedAction: "none", actionLabel: "" };
   if (latestAiLog?.response) {
     try {
       const parsed = JSON.parse(latestAiLog.response);
       aiData = {
+        headline: parsed.headline || "",
         message: parsed.message || latestAiLog.response,
         suggestedAction: parsed.suggestedAction || "none",
         actionLabel: parsed.actionLabel || "",
@@ -231,13 +234,16 @@ export default function HomeScreen() {
           </View>
           <Text style={styles.brandName}>{user?.name?.split(" ")[0] || "DailyBoost"}</Text>
         </View>
-        <TouchableOpacity 
-          activeOpacity={0.7} 
-          style={styles.headerAction}
-          onPress={() => router.push("/chatbot")}
-        >
-          <MaterialIcons name="auto-awesome" size={24} color={C.primary} />
-        </TouchableOpacity>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <ReceiptScannerButton />
+          <TouchableOpacity 
+            activeOpacity={0.7} 
+            style={styles.headerAction}
+            onPress={() => router.push("/chatbot")}
+          >
+            <MaterialIcons name="auto-awesome" size={24} color={C.primary} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -290,7 +296,7 @@ export default function HomeScreen() {
                 <MaterialIcons name="lightbulb" size={16} color="#88153e" />
               </View>
               <Text style={{ fontSize: 11, fontWeight: "800", color: "#88153e", textTransform: "uppercase", letterSpacing: 1.5 }}>
-                {t("home_ai_fragment" as any)}
+                Saran Cerdas AI
               </Text>
               {!isEmpty && (
                 <TouchableOpacity onPress={handleRefreshInsight} disabled={isGeneratingAi} activeOpacity={0.7} style={{ marginLeft: "auto", padding: 4 }}>
@@ -332,7 +338,7 @@ export default function HomeScreen() {
             ) : (
               <View>
                 <Text style={{ fontSize: 24, fontWeight: "800", color: "#5a0f2a", lineHeight: 30, marginBottom: 12 }}>
-                  {t("intelligence_fragment" as any)}
+                  {aiData.headline || t("intelligence_fragment" as any)}
                 </Text>
                 <Text style={{ fontSize: 15, color: "#88153e", lineHeight: 22, opacity: 0.7, marginBottom: 18 }}>
                   {aiData.message || "Terus catat anggaran Anda!"}

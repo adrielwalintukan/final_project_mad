@@ -16,6 +16,8 @@ Kamu adalah asisten keuangan pintar. Tugasmu adalah mendengarkan pesan suara pen
 4. Catatan (note): Nama toko, barang, atau deskripsi singkat (contoh: "Beli bensin", "Makan siang KFC", "Gaji bulanan").
 5. Insight: Berikan satu kalimat singkat (max 2 kalimat) berupa feedback atau saran lucu/profesional terhadap transaksi tersebut. (contoh: "Wah, makan siang mewah nih! Jangan lupa sisihkan buat nabung ya.")
 
+PENTING: Jika kamu TIDAK MENDENGAR apapun atau file audio kosong, KEMBALIKAN JSON dengan amount 0, note "Suara tidak jelas", dan insight "Tolong ulangi suaranya". JANGAN PERNAH MENGARANG TRANSAKSI SENDIRI.
+
 Keluarkan output HANYA dalam format JSON valid tanpa markdown (tanpa \`\`\`json).
 Contoh output:
 {
@@ -35,7 +37,7 @@ export async function extractTransactionFromAudio(
     throw new Error("Missing Gemini API Key");
   }
 
-  // Gunakan Gemini 3.1 Flash Lite sebagai model utama
+  // Gunakan Gemini 3.1 Flash Lite Preview (sesuai ketersediaan token pengguna)
   let url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${GEMINI_API_KEY}`;
 
   const requestBody = {
@@ -66,11 +68,11 @@ export async function extractTransactionFromAudio(
 
   let data = await response.json();
 
-  // Jika model 3.1 sedang sibuk (503), fallback ke 2.5 Flash
+  // Jika model sibuk (503), fallback ke gemini-2.5-flash-lite
   if (!response.ok && response.status === 503) {
-    console.warn("Model 3.1 sibuk, menggunakan fallback ke gemini-2.5-flash...");
-    url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
-    
+    console.warn("Model sibuk, menggunakan fallback ke gemini-2.5-flash-lite...");
+    url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_API_KEY}`;
+
     response = await fetch(url, {
       method: "POST",
       headers: {
