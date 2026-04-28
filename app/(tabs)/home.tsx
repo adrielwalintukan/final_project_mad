@@ -99,9 +99,11 @@ export default function HomeScreen() {
   const aiLogsRaw = useQuery(api.aiLogs.getAiLogs, user?._id ? { userId: user._id as Id<"users">, type: "daily_insight", limit: 1 } : "skip");
   const latestAiLog = aiLogsRaw?.[0];
   const saveAiLog = useMutation(api.aiLogs.saveAiLog);
+  const deleteTx = useMutation(api.transactions.deleteTransaction);
  
    const [isGeneratingAi, setIsGeneratingAi] = React.useState(false);
    const [aiError, setAiError] = React.useState<string | null>(null);
+   const [undoTx, setUndoTx] = React.useState<{id: Id<"transactions">, visible: boolean} | null>(null);
  
    // Helper inside component to trigger Gemini
    const handleRefreshInsight = async () => {
@@ -139,9 +141,21 @@ export default function HomeScreen() {
       }
     } else if (transactions.length !== prevTxCount.current) {
       // Subsequent changes: user added/deleted tx
+      const wasAdded = transactions.length > prevTxCount.current;
       prevTxCount.current = transactions.length;
       
-      // Trigger refresh
+      // If a transaction was added, show the Undo banner
+      if (wasAdded && transactions.length > 0) {
+        const latestTx = transactions[0];
+        setUndoTx({ id: latestTx._id as Id<"transactions">, visible: true });
+        
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+          setUndoTx(prev => prev?.id === latestTx._id ? { ...prev, visible: false } : prev);
+        }, 5000);
+      }
+
+      // Trigger AI refresh
       if (!isGeneratingAi && !isEmpty) {
          handleRefreshInsight();
       }
@@ -396,14 +410,32 @@ export default function HomeScreen() {
                       {translateCategory(tx.category, t)} • {txDate}
                     </Text>
                   </View>
-                  <Text
-                    style={[
-                      styles.txAmount,
-                      { color: tx.type === "income" ? C.primary : C.onSurface },
-                    ]}
-                  >
-                    {tx.type === "income" ? "+" : "-"}Rp {formatCurrency(Math.abs(tx.amount)).whole}
-                  </Text>
+                  <View style={{ alignItems: "flex-end", gap: 4 }}>
+                    <Text
+                      style={[
+                        styles.txAmount,
+                        { color: tx.type === "income" ? C.primary : C.onSurface },
+                      ]}
+                    >
+                      {tx.type === "income" ? "+" : "-"}Rp {formatCurrency(Math.abs(tx.amount)).whole}
+                    </Text>
+                    {/* Permanent Delete/Undo Button */}
+                    <TouchableOpacity 
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      onPress={() => {
+                        Alert.alert(
+                          t("delete_transaction") || "Hapus Transaksi", 
+                          t("delete_confirm_msg") || "Apakah kamu yakin ingin menghapus transaksi ini?",
+                          [
+                            { text: t("cancel") || "Batal", style: "cancel" },
+                            { text: t("delete") || "Hapus", style: "destructive", onPress: () => deleteTx({ transactionId: tx._id }) }
+                          ]
+                        );
+                      }}
+                    >
+                      <Text style={{ fontSize: 11, color: C.error, fontWeight: "600" }}>{t("delete") || "Hapus"}</Text>
+                    </TouchableOpacity>
+                  </View>
                 </TouchableOpacity>
               );
             })
@@ -446,6 +478,24 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </ScrollView>
 
+      {/* ━━━ UNDO BANNER ━━━ */}
+      {undoTx?.visible && (
+        <View style={styles.undoBanner}>
+          <Text style={styles.undoText}>{t("tx_added" as any) || "Transaksi ditambahkan"}</Text>
+          <TouchableOpacity 
+            activeOpacity={0.7}
+            onPress={async () => {
+              if (undoTx.id) {
+                await deleteTx({ transactionId: undoTx.id });
+                setUndoTx(prev => prev ? { ...prev, visible: false } : null);
+              }
+            }}
+          >
+            <Text style={styles.undoButton}>BATALKAN</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       <VoiceInputBubble />
       {/* ━━━ FLOATING ADD BUTTON ━━━ */}
       <TouchableOpacity 
@@ -453,14 +503,9 @@ export default function HomeScreen() {
         style={styles.fab} 
         onPress={() => router.push("/addTransaction")}
       >
-        <LinearGradient
-          colors={[C.primary, C.primaryFixedDim]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.fabGradient}
-        >
-          <MaterialIcons name="add" size={28} color="#fff" />
-        </LinearGradient>
+        <View style={styles.fabContainer}>
+          <MaterialIcons name="add" size={32} color="#101113" />
+        </View>
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -478,6 +523,37 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 20,
     paddingBottom: 110,
+  },
+  // Undo Banner
+  undoBanner: {
+    position: "absolute",
+    bottom: Platform.OS === "ios" ? 110 : 90,
+    left: 20,
+    right: 95, // leave space for FABs
+    backgroundColor: C.onSurface,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 8,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    zIndex: 100,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+  },
+  undoText: {
+    color: C.surface,
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  undoButton: {
+    color: C.primaryFixed,
+    fontSize: 14,
+    fontWeight: "800",
+    letterSpacing: 0.5,
   },
 
   // Header
@@ -832,20 +908,17 @@ const styles = StyleSheet.create({
     bottom: Platform.OS === "ios" ? 105 : 85,
     right: 20,
     zIndex: 50,
-    borderRadius: 30,
-    shadowColor: "#0d631b",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
-    elevation: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 8,
   },
-  addFab: {
-    bottom: Platform.OS === "ios" ? 180 : 160,
-  },
-  fabGradient: {
+  fabContainer: {
     width: 60,
     height: 60,
-    borderRadius: 30,
+    borderRadius: 22,
+    backgroundColor: "#34C759", // Bright green from reference
     alignItems: "center",
     justifyContent: "center",
   },

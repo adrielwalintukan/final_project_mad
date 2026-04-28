@@ -394,9 +394,18 @@ export default function HistoryScreen() {
                         <Text style={styles.txTitle} numberOfLines={1}>{tx.note || translateCategory(tx.category, t)}</Text>
                         <Text style={styles.txMeta}>{translateCategory(tx.category, t)}</Text>
                       </View>
-                      <Text style={[styles.txAmount, { color: tx.type === "income" ? C.primary : C.onSurface }]}>
-                        {tx.type === "income" ? "+" : "-"}Rp {formatCurrency(Math.abs(tx.amount)).whole}
-                      </Text>
+                      <View style={{ alignItems: "flex-end", gap: 4 }}>
+                        <Text style={[styles.txAmount, { color: tx.type === "income" ? C.primary : C.onSurface }]}>
+                          {tx.type === "income" ? "+" : "-"}Rp {formatCurrency(Math.abs(tx.amount)).whole}
+                        </Text>
+                        {/* Permanent Delete/Undo Button */}
+                        <TouchableOpacity 
+                          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                          onPress={() => handleDelete(tx._id)}
+                        >
+                          <Text style={{ fontSize: 11, color: C.error, fontWeight: "600" }}>{t("delete") || "Batalkan"}</Text>
+                        </TouchableOpacity>
+                      </View>
                     </TouchableOpacity>
                   );
                 })}

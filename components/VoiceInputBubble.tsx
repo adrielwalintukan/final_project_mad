@@ -115,7 +115,7 @@ export default function VoiceInputBubble() {
         {isProcessing ? (
           <ActivityIndicator size="small" color="#fff" />
         ) : (
-          <MaterialIcons name={recording ? "stop" : "mic"} size={28} color="#fff" />
+          <MaterialIcons name={recording ? "stop" : "mic"} size={28} color={recording ? "#fff" : "#fce4ec"} />
         )}
       </TouchableOpacity>
     </View>
@@ -130,16 +130,16 @@ const styles = StyleSheet.create({
     zIndex: 100,
   },
   bubble: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: C.primary,
+    width: 60,
+    height: 60,
+    borderRadius: 22,
+    backgroundColor: "#1F2128", // Dark grey from reference
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
     elevation: 8,
   },
   bubbleRecording: {
