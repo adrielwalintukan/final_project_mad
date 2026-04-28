@@ -134,35 +134,36 @@ export default function HomeScreen() {
   const topTxId = transactions.length > 0 ? transactions[0]._id : null;
   const txLength = transactions.length;
   
-  useFocusEffect(
-    React.useCallback(() => {
-      if (isLoading || !user?._id) return;
+  React.useEffect(() => {
+    if (isLoading || !user?._id) return;
 
-      if (prevTxCount.current === null) {
-        // Initial load
-        prevTxCount.current = txLength;
-        if (!isEmpty && (!aiLogsRaw || aiLogsRaw.length === 0) && !isGeneratingAi) {
-          handleRefreshInsight();
-        }
-      } else if (txLength !== prevTxCount.current) {
-        const wasAdded = txLength > prevTxCount.current;
-        prevTxCount.current = txLength;
+    if (prevTxCount.current === null) {
+      // Initial load
+      prevTxCount.current = txLength;
+      if (!isEmpty && (!aiLogsRaw || aiLogsRaw.length === 0) && !isGeneratingAi) {
+        handleRefreshInsight();
+      }
+    } else if (txLength > prevTxCount.current) {
+      // Ada transaksi baru ditambahkan
+      prevTxCount.current = txLength;
+      
+      if (transactions.length > 0) {
+        const latestTx = transactions[0];
+        setUndoTx({ id: latestTx._id as Id<"transactions">, visible: true });
         
-        if (wasAdded && transactions.length > 0) {
-          const latestTx = transactions[0];
-          setUndoTx({ id: latestTx._id as Id<"transactions">, visible: true });
-          
-          setTimeout(() => {
-            setUndoTx(prev => prev?.id === latestTx._id ? { ...prev, visible: false } : prev);
-          }, 5000);
-        }
+        setTimeout(() => {
+          setUndoTx(prev => prev?.id === latestTx._id ? { ...prev, visible: false } : prev);
+        }, 5000);
 
         if (!isGeneratingAi && !isEmpty) {
            handleRefreshInsight();
         }
       }
-    }, [txLength, topTxId, isLoading, user?._id, isEmpty])
-  );
+    } else if (txLength < prevTxCount.current) {
+      // Transaksi dihapus (hanya perbarui counter, tidak panggil AI)
+      prevTxCount.current = txLength;
+    }
+  }, [txLength, topTxId, isLoading, user?._id, isEmpty]);
 
   if (isLoading) {
     return (

@@ -99,9 +99,12 @@ export default function ChatbotScreen() {
     recentTransactionsSummary:
       transactions && transactions.length > 0
         ? transactions
-            .slice(0, 10)
-            .map((tx: any) => tx.category + ": Rp " + tx.amount + " (" + tx.type + ")")
-            .join(", ")
+            .slice(0, 50)
+            .map((tx: any) => {
+              const dateStr = new Date(tx.date).toLocaleDateString("id-ID", { day: 'numeric', month: 'long', year: 'numeric' });
+              return `[${dateStr}] ${tx.category}: Rp ${tx.amount} (${tx.type})`;
+            })
+            .join("\n")
         : "Belum ada transaksi",
   };
 

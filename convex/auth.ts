@@ -130,8 +130,10 @@ export const loginWithGoogle = mutation({
       .unique();
 
     if (existingUser) {
-      if (args.photoUrl && args.photoUrl !== existingUser.photoUrl) {
+      // Hanya perbarui photoUrl dari Google jika user saat ini belum punya foto sama sekali
+      if (args.photoUrl && !existingUser.photoUrl) {
         await ctx.db.patch(existingUser._id, { photoUrl: args.photoUrl });
+        existingUser.photoUrl = args.photoUrl;
       }
       return {
         _id: existingUser._id,
