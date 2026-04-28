@@ -60,8 +60,9 @@ Rules to strictly follow:
 3. The "message" field must be extremely concise and TO THE POINT (maximum 3-4 sentences total).
 4. NO greetings or introductory phrases. Start immediately with the core insight.
 5. NO markdown formatting at all inside the message field.
-6. Look at the spending pattern. If a specific category dominates, set "suggestedAction" to "create_budget". If no transactions exist, suggest "add_transaction". If there's plenty of savings, suggest "view_goals". Else set to "none".
-7. Make "actionLabel" an actionable short text in ${langName}, e.g. "Create Budget" / "Buat Budget", "Add Transaction" / "Tambah Transaksi", etc.
+6. JANGAN gunakan bahasa yang kaku seperti template! Berikan saran yang Bervariasi, Kreatif, dan Spesifik berdasarkan kebiasaan belanja atau saldo saat ini. Bertindaklah seperti financial coach pribadi yang tajam dan peduli.
+7. Look at the spending pattern. If a specific category dominates, set "suggestedAction" to "create_budget". If no transactions exist, suggest "add_transaction". If there's plenty of savings, suggest "view_goals". Else set to "none".
+8. Make "actionLabel" an actionable short text in ${langName}, e.g. "Create Budget" / "Buat Budget", "Add Transaction" / "Tambah Transaksi", etc.
 
 EXPECTED JSON SCHEMA:
 {
@@ -85,12 +86,12 @@ ${recentTransactions.slice(0, 5).map(tx => `- ${tx.category}: Rp ${tx.amount.toL
 
   try {
     // Try Primary Model (2.5-flash)
-    let response = await fetchWithRetry(prompt, "gemma-3-27b-it", GEMINI_API_KEY);
+    let response = await fetchWithRetry(prompt, "gemini-2.5-flash", GEMINI_API_KEY);
 
     // If Primary fails with 503 after retries, try Fallback Model
     if (!response.ok && response.status === 503) {
-      console.warn("Primary gemma-3-27b-it busy, falling back to gemma-4-26b-it");
-      response = await fetchWithRetry(prompt, "gemma-4-26b-it", GEMINI_API_KEY);
+      console.warn("Primary gemini-2.5-flash busy, falling back to gemini-3.1-flash-lite-preview");
+      response = await fetchWithRetry(prompt, "gemini-3.1-flash-lite-preview", GEMINI_API_KEY);
     }
 
     const data = await response.json();

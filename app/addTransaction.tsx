@@ -16,7 +16,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { useAuth } from "../context/AuthContext";
@@ -80,19 +80,23 @@ export default function AddTransactionScreen() {
   
   const addTransaction = useMutation(api.transactions.addTransaction);
 
-  const [txType, setTxType] = useState<"expense" | "income">("expense");
-  const [amountStr, setAmountStr] = useState("0");
-  const [category, setCategory] = useState("Food");
-  const [note, setNote] = useState("");
+  const params = useLocalSearchParams();
+  const [txType, setTxType] = useState<"expense" | "income">((params.type as "expense" | "income") || "expense");
+  const [amountStr, setAmountStr] = useState((params.amount as string) || "0");
+  const [category, setCategory] = useState((params.category as string) || "Food");
+  const [note, setNote] = useState((params.note as string) || "");
+  const [insight, setInsight] = useState((params.insight as string) || "");
   const [isSaving, setIsSaving] = useState(false);
-  const [showNumpad, setShowNumpad] = useState(true);
+  const [showNumpad, setShowNumpad] = useState(!(params.amount && params.amount !== "0"));
 
   // Dynamic Categories
   const currentCategories = txType === "expense" ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
 
   React.useEffect(() => {
-    // Reset selected category when switching type
-    setCategory(txType === "expense" ? "Food" : "Salary");
+    // Reset selected category when switching type, ONLY if it wasn't pre-filled by AI on mount
+    if (!params.category) {
+      setCategory(txType === "expense" ? "Food" : "Salary");
+    }
   }, [txType]);
 
   // Animations & Gestures
@@ -367,14 +371,25 @@ export default function AddTransactionScreen() {
           </View>
 
           {/* AI Insight Chip */}
-          <View style={styles.aiInsightChip}>
-            <View style={styles.aiIconWrap}>
-              <MaterialIcons name="smart-toy" size={18} color={C.tertiaryFixed} />
+          {(insight || params.insight) ? (
+            <View style={styles.aiInsightChip}>
+              <View style={styles.aiIconWrap}>
+                <MaterialIcons name="auto-awesome" size={18} color={C.tertiaryFixed} />
+              </View>
+              <Text style={styles.aiInsightText}>
+                {insight || params.insight}
+              </Text>
             </View>
-            <Text style={styles.aiInsightText}>
-              {t("insight_spent_more")}
-            </Text>
-          </View>
+          ) : (
+            <View style={styles.aiInsightChip}>
+              <View style={styles.aiIconWrap}>
+                <MaterialIcons name="smart-toy" size={18} color={C.tertiaryFixed} />
+              </View>
+              <Text style={styles.aiInsightText}>
+                {t("insight_spent_more")}
+              </Text>
+            </View>
+          )}
 
           </ScrollView>
         </Animated.View>

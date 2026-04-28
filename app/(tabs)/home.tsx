@@ -23,6 +23,7 @@ import { generateSmartFinancialInsight } from "../../services/gemini";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
+import VoiceInputBubble from "../../components/VoiceInputBubble";
 
 const { width } = Dimensions.get("window");
 
@@ -123,14 +124,29 @@ export default function HomeScreen() {
      }
    };
 
-  // Auto-generate if no log exists and the user has transactions
+  // Track transaction count to trigger AI refresh on add/remove
+  const prevTxCount = React.useRef<number | null>(null);
+
   React.useEffect(() => {
-    if (!isLoading && !isEmpty && user?._id && aiLogsRaw && aiLogsRaw.length === 0) {
-      if (!isGeneratingAi) {
+    if (isLoading || !user?._id) return;
+
+    if (prevTxCount.current === null) {
+      // Initial load
+      prevTxCount.current = transactions.length;
+      // Auto-generate if no log exists and the user has transactions
+      if (!isEmpty && (!aiLogsRaw || aiLogsRaw.length === 0) && !isGeneratingAi) {
+        handleRefreshInsight();
+      }
+    } else if (transactions.length !== prevTxCount.current) {
+      // Subsequent changes: user added/deleted tx
+      prevTxCount.current = transactions.length;
+      
+      // Trigger refresh
+      if (!isGeneratingAi && !isEmpty) {
          handleRefreshInsight();
       }
     }
-  }, [isLoading, isEmpty, user?._id, aiLogsRaw]);
+  }, [transactions.length, isLoading, user?._id]);
 
   if (isLoading) {
     return (
@@ -430,6 +446,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </ScrollView>
 
+      <VoiceInputBubble />
       {/* ━━━ FLOATING ADD BUTTON ━━━ */}
       <TouchableOpacity 
         activeOpacity={0.85} 
