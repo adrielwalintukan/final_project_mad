@@ -87,7 +87,7 @@ ${recentTransactions.slice(0, 5).map(tx => `- ${tx.category}: Rp ${tx.amount.toL
 
   try {
     // Try Primary Model (2.5-flash)
-    let response = await fetchWithRetry(prompt, "gemini-2.5-flash-lite", GEMINI_API_KEY);
+    let response = await fetchWithRetry(prompt, "gemma-3-27b-it", GEMINI_API_KEY);
 
     // If Primary fails with 503 after retries, try Fallback Model
     if (!response.ok && response.status === 503) {
