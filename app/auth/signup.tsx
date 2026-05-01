@@ -100,6 +100,7 @@ export default function SignupScreen() {
         _id: userData._id,
         name: userData.name,
         email: userData.email,
+        photoUrl: userData.photoUrl,
         createdAt: userData.createdAt,
       });
 

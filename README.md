@@ -1,50 +1,95 @@
-# Welcome to your Expo app 👋
+# 🚀 DailyBoost AI - Smart Financial Assistant
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+**DailyBoost AI** adalah aplikasi manajemen keuangan cerdas berbasis AI yang membantu Anda mengelola pengeluaran, menetapkan target tabungan, dan mendapatkan saran finansial yang personal. Dibangun menggunakan teknologi terbaru: **Expo**, **Convex**, dan **Google Gemini 3.1 AI**.
 
-## Get started
+---
 
-1. Install dependencies
+## ✨ Fitur Unggulan
 
-   ```bash
-   npm install
-   ```
+### 🤖 AI-Powered Capabilities
+- **AI Receipt Scanner**: Ekstraksi data otomatis dari foto struk belanja menggunakan Computer Vision.
+- **AI Voice Transaction**: Input transaksi instan melalui perintah suara (Multimodal Audio).
+- **AI Smart Insight**: Analisis harian otomatis yang memberikan saran finansial berdasarkan perilaku belanja.
+- **Atelier AI Financial Advisor**: Chatbot interaktif yang memahami data keuangan Anda untuk konsultasi finansial.
 
-2. Start the app
+### 💰 Financial Management
+- **Intelligent Dashboard**: Pantau saldo, pemasukan, dan pengeluaran secara real-time.
+- **Budgeting System**: Atur limit pengeluaran per kategori untuk mencegah pemborosan.
+- **Savings Goals**: Tetapkan target tabungan dan pantau progress pencapaiannya secara visual.
+- **History & Analytics**: Riwayat transaksi lengkap dengan grafik distribusi pengeluaran.
 
-   ```bash
-   npx expo start
-   ```
+### 🛡️ User Experience & Security
+- **OAuth 2.0 Secure Login**: Masuk aman menggunakan Akun Google.
+- **Real-time Sync**: Data tersinkronisasi secara instan di semua perangkat melalui Convex Cloud.
+- **Smart Undo System**: Fitur "Batal Hapus" instan untuk mencegah kehilangan data yang tidak disengaja.
+- **Custom Profile**: Personalisasi akun dengan foto profil yang tersimpan di cloud storage.
 
-In the output, you'll find options to open the app in a
+---
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## 🛠️ Tech Stack
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- **Frontend**: [React Native](https://reactnative.dev/) & [Expo](https://expo.dev/) (SDK 50+)
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **Backend & Database**: [Convex](https://convex.dev/) (Real-time Backend-as-a-Service)
+- **AI Engine**: [Google Gemini 3.1 Flash Lite](https://ai.google.dev/) (Multimodal Vision & Audio)
+- **Navigation**: Expo Router (File-based Routing)
+- **Icons**: Lucide React & Vector Icons
 
-## Get a fresh project
+---
 
-When you're ready, run:
+## 🚀 Cara Menjalankan Proyek
 
+### 1. Clone Repository
 ```bash
-npm run reset-project
+git clone https://github.com/username/final-project-mad.git
+cd final-project-mad
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### 2. Instal Dependensi
+```bash
+npm install
+```
 
-## Learn more
+### 3. Konfigurasi Environment Variables
+Buat file `.env.local` di root direktori dan masukkan key berikut:
+```env
+EXPO_PUBLIC_CONVEX_URL=your_convex_url
+EXPO_PUBLIC_GEMINI_API_KEY=your_gemini_api_key
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+### 4. Jalankan Backend (Convex)
+Pastikan Anda sudah login ke Convex CLI dan jalankan server dev:
+```bash
+npx convex dev
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### 5. Jalankan Aplikasi (Expo)
+Buka terminal baru dan jalankan Expo Go:
+```bash
+npx expo start
+```
+Scan QR Code menggunakan aplikasi **Expo Go** di HP Anda (Android/iOS).
 
-## Join the community
+---
 
-Join our community of developers creating universal apps.
+## 📁 Struktur Folder Utama
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```text
+├── app/               # Expo Router (Pages & Layouts)
+├── components/        # Reusable UI Components
+├── context/           # React Context (Auth, Language, App State)
+├── convex/            # Backend Functions & Database Schema
+├── hooks/             # Custom React Hooks (Data Fetching)
+├── services/          # AI Services Integration (Gemini)
+├── utils/             # Helper Functions (Formatting, Dates)
+└── assets/            # Images, Fonts, and Icons
+```
+
+---
+
+## 📝 Catatan Pengembangan
+Proyek ini dikembangkan menggunakan metodologi **Agile (Iterative & Incremental)**, memastikan setiap fitur diuji secara mendalam dan dioptimalkan untuk pengalaman pengguna terbaik.
+
+---
+
+**Dibuat oleh Adriel Walintukan - Proyek Akhir Mobile Application Development**

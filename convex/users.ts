@@ -64,3 +64,20 @@ export const updatePhoto = mutation({
     return newPhotoUrl;
   },
 });
+
+/**
+ * Updates a user's name
+ */
+export const updateName = mutation({
+  args: {
+    userId: v.id("users"),
+    name: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const name = args.name.trim();
+    if (!name) throw new Error("Name cannot be empty");
+    
+    await ctx.db.patch(args.userId, { name });
+    return { success: true };
+  },
+});

@@ -1,8 +1,10 @@
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter, useFocusEffect } from "expo-router";
 import React from "react";
 import {
   ActivityIndicator,
+  Alert,
   Dimensions,
   Image,
   Platform,
@@ -16,6 +18,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../context/AuthContext";
 import { useLanguage } from "../../context/LanguageContext";
 import { useDashboardData } from "../../hooks/useDashboardData";
+import { useFinancialSummary } from "../../hooks/useFinancialSummary";
+import { generateSmartFinancialInsight } from "../../services/gemini";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import { Id } from "../../convex/_generated/dataModel";
+import VoiceInputBubble from "../../components/VoiceInputBubble";
+import ReceiptScannerButton from "../../components/ReceiptScannerButton";
 
 const { width } = Dimensions.get("window");
 
@@ -74,10 +83,95 @@ function formatCurrency(num: number) {
   return { whole, cents: parts[1] };
 }
 
+function translateCategory(category: string, t: any) {
+  const normalized = category.toLowerCase();
+  const key = normalized === "other" ? "other_income" : normalized;
+  return t(key) || category;
+}
+
 export default function HomeScreen() {
+  const router = useRouter();
   const { user } = useAuth();
-  const { t } = useLanguage();
-  const { balance, totalIncome, totalExpense, transactions, goals, insight, isEmpty, isLoading } = useDashboardData();
+  const { t, language } = useLanguage();
+  const { balance, totalIncome, totalExpense, transactions, goals, isEmpty, isLoading } = useDashboardData();
+  
+  const summaryData = useFinancialSummary(transactions);
+  
+  const aiLogsRaw = useQuery(api.aiLogs.getAiLogs, user?._id ? { userId: user._id as Id<"users">, type: "daily_insight", limit: 1 } : "skip");
+  const latestAiLog = aiLogsRaw?.[0];
+  const saveAiLog = useMutation(api.aiLogs.saveAiLog);
+  const deleteTx = useMutation(api.transactions.deleteTransaction);
+ 
+   const [isGeneratingAi, setIsGeneratingAi] = React.useState(false);
+   const [aiError, setAiError] = React.useState<string | null>(null);
+   const [undoTx, setUndoTx] = React.useState<{id: Id<"transactions">, visible: boolean} | null>(null);
+ 
+   // Helper inside component to trigger Gemini
+   const handleRefreshInsight = async () => {
+     if (isEmpty || !user?._id) return;
+     setIsGeneratingAi(true);
+     setAiError(null);
+     try {
+       const result = await generateSmartFinancialInsight(summaryData, transactions, language);
+       await saveAiLog({
+         userId: user._id as Id<"users">,
+         type: "daily_insight",
+         prompt: "Auto-generated from transaction summary.",
+         response: result,
+       });
+     } catch (error: any) {
+       console.warn("Home AI Insight Error:", error);
+       setAiError(t("ai_error_busy"));
+     } finally {
+       setIsGeneratingAi(false);
+     }
+   };
+
+  // Track transaction count to trigger AI refresh on add/remove
+  const prevTxCount = React.useRef<number | null>(null);
+  const lastTriggeredTxTime = React.useRef<number>(0);
+
+  // Auto-refresh AI Insight saat kembali ke Home jika ada transaksi baru
+  const topTxId = transactions.length > 0 ? transactions[0]._id : null;
+  const txLength = transactions.length;
+  
+  React.useEffect(() => {
+    if (isLoading || !user?._id || aiLogsRaw === undefined || isGeneratingAi) return;
+
+    // 1. Cek jika tidak ada data (Kosong)
+    if (isEmpty) return;
+
+    const latestAiLog = aiLogsRaw?.[0];
+    const latestTx = transactions?.[0];
+
+    // 2. Trigger awal: Jika belum pernah ada log AI sama sekali
+    if (!latestAiLog) {
+      handleRefreshInsight();
+      return;
+    }
+
+    // 3. Trigger Transaksi Baru: Jika transaksi terbaru lebih baru daripada Log AI terakhir
+    // Ini menjamin AI hanya terupdate jika ada data yang belum dia analisa.
+    if (latestTx && latestTx.createdAt > latestAiLog.createdAt) {
+      // Mencegah loop tak terbatas jika API gagal: 
+      // Hanya coba refresh otomatis SEKALI untuk setiap transaksi baru yang sama.
+      if (latestTx.createdAt === lastTriggeredTxTime.current) return;
+      lastTriggeredTxTime.current = latestTx.createdAt;
+
+      // Deteksi penambahan untuk menampilkan Toast Undo
+      if (prevTxCount.current !== null && txLength > prevTxCount.current) {
+        setUndoTx({ id: latestTx._id as Id<"transactions">, visible: true });
+        setTimeout(() => {
+          setUndoTx(prev => prev?.id === latestTx._id ? { ...prev, visible: false } : prev);
+        }, 5000);
+      }
+      
+      handleRefreshInsight();
+    }
+
+    // Selalu sinkronkan hitungan transaksi terakhir
+    prevTxCount.current = txLength;
+  }, [txLength, aiLogsRaw, isLoading, user?._id, isEmpty]);
 
   if (isLoading) {
     return (
@@ -88,7 +182,41 @@ export default function HomeScreen() {
     );
   }
 
+  // Safely parse AI JSON response
+  let aiData = { headline: "", message: "", suggestedAction: "none", actionLabel: "" };
+  if (latestAiLog?.response) {
+    try {
+      const parsed = JSON.parse(latestAiLog.response);
+      aiData = {
+        headline: parsed.headline || "",
+        message: parsed.message || latestAiLog.response,
+        suggestedAction: parsed.suggestedAction || "none",
+        actionLabel: parsed.actionLabel || "",
+      };
+    } catch {
+      // Fallback for older plain text strings
+      aiData.message = latestAiLog.response;
+    }
+  }
+
   const { whole: balanceWhole, cents: balanceCents } = formatCurrency(Math.abs(balance));
+  
+  // Handlers for dynamic AI CTAs
+  const handleAiAction = () => {
+    switch(aiData.suggestedAction) {
+      case "create_budget":
+        router.push("/createBudget");
+        break;
+      case "add_transaction":
+        router.push("/addTransaction");
+        break;
+      case "view_goals":
+        router.push("/goals");
+        break;
+      default:
+        break;
+    }
+  };
 
   // Calculate flow tracks width securely
   const totalFlow = totalIncome + totalExpense || 1;
@@ -98,105 +226,171 @@ export default function HomeScreen() {
   const activeGoal = goals.length > 0 ? goals[0] : null;
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
+      {/* ━━━ HEADER ━━━ */}
+      <View style={[styles.header, { paddingHorizontal: 20 }]}>
+        <View style={styles.headerLeft}>
+          <View style={styles.avatarWrap}>
+            {user?.photoUrl ? (
+              <Image
+                source={{ uri: user.photoUrl }}
+                style={styles.avatar}
+              />
+            ) : (
+              <View style={[styles.avatar, { alignItems: "center", justifyContent: "center", backgroundColor: C.surfaceContainerHigh }]}>
+                <MaterialIcons name="person" size={22} color={C.onSurfaceVariant} />
+              </View>
+            )}
+          </View>
+          <Text style={styles.brandName}>{user?.name?.split(" ")[0] || "DailyBoost"}</Text>
+        </View>
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <ReceiptScannerButton />
+          <TouchableOpacity 
+            activeOpacity={0.7} 
+            style={styles.headerAction}
+            onPress={() => router.push("/chatbot")}
+          >
+            <MaterialIcons name="auto-awesome" size={24} color={C.primary} />
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ━━━ HEADER ━━━ */}
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <View style={styles.avatarWrap}>
-              {user?.photoUrl ? (
-                <Image
-                  source={{ uri: user.photoUrl }}
-                  style={styles.avatar}
-                />
-              ) : (
-                <View style={[styles.avatar, { alignItems: "center", justifyContent: "center", backgroundColor: C.surfaceContainerHigh }]}>
-                  <MaterialIcons name="person" size={22} color={C.onSurfaceVariant} />
-                </View>
-              )}
-            </View>
-            <Text style={styles.brandName}>{user?.name?.split(" ")[0] || "Editorial Intelligence"}</Text>
-          </View>
-          <TouchableOpacity activeOpacity={0.7} style={styles.headerAction}>
-            <MaterialIcons name="auto-awesome" size={24} color={C.primary} />
-          </TouchableOpacity>
-        </View>
 
         {/* ━━━ HERO BALANCE ━━━ */}
         <View style={styles.heroSection}>
           <View style={styles.statusDot}>
             <View style={styles.dot} />
-            <Text style={styles.statusLabel}>{t("portfolio_excellence")}</Text>
+            <Text style={styles.statusLabel}>{t("home_balance_label" as any)}</Text>
           </View>
-          <Text style={styles.heroAmount}>
+          <Text 
+            style={styles.heroAmount}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+          >
             {balance < 0 ? "-" : ""}Rp {balanceWhole}<Text style={styles.heroCents}>.{balanceCents}</Text>
           </Text>
-          <View style={styles.badgeRow}>
-            <View style={styles.badgeGreen}>
-              <MaterialIcons name="receipt-long" size={14} color={C.onPrimaryFixedVariant} />
-              <Text style={styles.badgeGreenText}>{transactions.length} {t("total_entries")}</Text>
+          <View style={styles.incExpRow}>
+            <View style={styles.incExpItem}>
+              <View style={styles.incIconWrap}>
+                <MaterialIcons name="arrow-downward" size={18} color={C.primary} />
+              </View>
+              <View>
+                <Text style={styles.incExpLabel}>{t("home_income" as any)}</Text>
+                <Text style={styles.incExpAmount}>{"Rp " + totalIncome.toLocaleString("id-ID")}</Text>
+              </View>
             </View>
-            <View style={styles.badgeNeutral}>
-              <Text style={styles.badgeNeutralText}>{t("live_sync")}</Text>
+            <View style={styles.incExpDivider} />
+            <View style={styles.incExpItem}>
+              <View style={styles.expIconWrap}>
+                <MaterialIcons name="arrow-upward" size={18} color={C.tertiary} />
+              </View>
+              <View>
+                <Text style={styles.incExpLabel}>{t("home_expense" as any)}</Text>
+                <Text style={styles.incExpAmount}>{"Rp " + totalExpense.toLocaleString("id-ID")}</Text>
+              </View>
             </View>
           </View>
         </View>
 
         {/* ━━━ AI INSIGHT CARD ━━━ */}
-        <TouchableOpacity activeOpacity={0.92} style={styles.aiCard}>
-          <LinearGradient
-            colors={["#ffd9e2", "#ffe8ed"]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.aiGradient}
-          >
-            <View style={styles.aiLabelRow}>
-              <MaterialIcons name="lightbulb" size={18} color={C.onTertiaryFixed} />
-              <Text style={styles.aiLabel}>{t("intelligence_fragment")}</Text>
-            </View>
-            <Text style={styles.aiHeadline}>
-              {insight ? t("new_insight_available") : (isEmpty ? t("start_adding_tx") : t("activity_monitoring"))}
-            </Text>
-            <Text style={styles.aiBody}>
-              {insight?.content || (isEmpty ? t("assistant_waiting") : t("no_new_insights"))}
-            </Text>
-            <View style={styles.aiButtonWrap}>
-              <View style={styles.aiButton}>
-                <Text style={styles.aiButtonText}>{insight ? t("review_insight") : t("explore_feature")}</Text>
+        <View style={styles.aiCard}>
+          <View style={{ backgroundColor: "#fce4ec", borderRadius: 24, padding: 22 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 16 }}>
+              <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: "rgba(136,21,62,0.12)", justifyContent: "center", alignItems: "center", marginRight: 10 }}>
+                <MaterialIcons name="lightbulb" size={16} color="#88153e" />
               </View>
+              <Text style={{ fontSize: 11, fontWeight: "800", color: "#88153e", textTransform: "uppercase", letterSpacing: 1.5 }}>
+                Saran Cerdas AI
+              </Text>
+              {!isEmpty && (
+                <TouchableOpacity onPress={handleRefreshInsight} disabled={isGeneratingAi} activeOpacity={0.7} style={{ marginLeft: "auto", padding: 4 }}>
+                  <MaterialIcons name="refresh" size={20} color={isGeneratingAi ? "#d4a0b0" : "#88153e"} />
+                </TouchableOpacity>
+              )}
             </View>
-          </LinearGradient>
-        </TouchableOpacity>
 
-        {/* ━━━ INFLOW / OUTFLOW CARDS ━━━ */}
-        <View style={styles.flowRow}>
-          {/* Inflow */}
-          <View style={[styles.flowCard, styles.elevation]}>
-            <Text style={styles.flowLabel}>{t("inflow")}</Text>
-            <Text style={styles.flowAmount}>Rp {formatCurrency(totalIncome).whole}</Text>
-            <View style={styles.progressTrack}>
-              <View style={[styles.progressFill, { width: `${isEmpty ? 0 : incomeWidth}%`, backgroundColor: C.primary }]} />
-            </View>
-            <Text style={styles.flowMeta}>{isEmpty ? t("track_first_income") : t("calculated_correctly")}</Text>
-          </View>
-          {/* Outflow */}
-          <View style={[styles.flowCard, styles.elevation]}>
-            <Text style={styles.flowLabel}>{t("outflow")}</Text>
-            <Text style={styles.flowAmount}>Rp {formatCurrency(totalExpense).whole}</Text>
-            <View style={styles.progressTrack}>
-              <View style={[styles.progressFill, { width: `${isEmpty ? 0 : expenseWidth}%`, backgroundColor: C.secondary }]} />
-            </View>
-            <Text style={styles.flowMeta}>{isEmpty ? t("setup_budget") : t("tracked_perfectly")}</Text>
+            {isEmpty ? (
+              <View>
+                <Text style={{ fontSize: 24, fontWeight: "800", color: "#5a0f2a", lineHeight: 30, marginBottom: 12 }}>
+                  {t("activity_monitoring" as any)}
+                </Text>
+                <Text style={{ fontSize: 15, color: "#88153e", lineHeight: 22, marginBottom: 18, opacity: 0.7 }}>
+                  {t("no_new_insights" as any)}
+                </Text>
+                <TouchableOpacity 
+                   onPress={() => router.push("/addTransaction")}
+                   style={{ backgroundColor: "#ffffff", paddingVertical: 12, paddingHorizontal: 20, borderRadius: 14, alignSelf: "flex-start", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 }}>
+                  <Text style={{ color: "#5a0f2a", fontWeight: "800", fontSize: 14 }}>{t("add_transaction" as any)}</Text>
+                </TouchableOpacity>
+              </View>
+            ) : isGeneratingAi ? (
+              <View style={{ paddingVertical: 16, alignItems: "center", justifyContent: "center", gap: 12, minHeight: 80 }}>
+                 <ActivityIndicator size="small" color="#88153e" />
+                 <Text style={{ fontSize: 13, color: "#88153e", opacity: 0.7 }}>{t("home_ai_analyzing" as any)}</Text>
+              </View>
+            ) : aiError ? (
+              <View style={{ paddingVertical: 16, alignItems: "center", justifyContent: "center", gap: 8, minHeight: 80 }}>
+                 <MaterialIcons name="cloud-off" size={24} color="#d4a0b0" />
+                 <Text style={{ fontSize: 13, color: "#88153e", textAlign: "center", opacity: 0.7 }}>{aiError}</Text>
+                 <TouchableOpacity 
+                   onPress={handleRefreshInsight}
+                   style={{ marginTop: 8, backgroundColor: "#ffffff", paddingVertical: 8, paddingHorizontal: 14, borderRadius: 10 }}
+                 >
+                   <Text style={{ fontSize: 12, fontWeight: "700", color: "#88153e" }}>{t("review_insight" as any)}</Text>
+                 </TouchableOpacity>
+              </View>
+            ) : (
+              <View>
+                <Text style={{ fontSize: 24, fontWeight: "800", color: "#5a0f2a", lineHeight: 30, marginBottom: 12 }}>
+                  {aiData.headline || t("intelligence_fragment" as any)}
+                </Text>
+                <Text style={{ fontSize: 15, color: "#88153e", lineHeight: 22, opacity: 0.7, marginBottom: 18 }}>
+                  {aiData.message || "Terus catat anggaran Anda!"}
+                </Text>
+                
+                {aiData.suggestedAction !== "none" && aiData.actionLabel && (
+                  <TouchableOpacity 
+                    onPress={handleAiAction}
+                    activeOpacity={0.7}
+                    style={{
+                      alignSelf: "flex-start",
+                      paddingVertical: 12,
+                      paddingHorizontal: 20,
+                      borderRadius: 14,
+                      backgroundColor: "#ffffff",
+                      shadowColor: "#000",
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.06,
+                      shadowRadius: 4,
+                      elevation: 2,
+                    }}
+                  >
+                    <Text style={{ fontSize: 14, fontWeight: "800", color: "#5a0f2a" }}>
+                      {aiData.actionLabel}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                {latestAiLog && (
+                  <Text style={{ fontSize: 10, color: "#88153e", marginTop: 14, opacity: 0.5, fontStyle: "italic" }}>
+                    Generated on {new Date(latestAiLog.createdAt).toLocaleString()}
+                  </Text>
+                )}
+              </View>
+            )}
           </View>
         </View>
+
 
         {/* ━━━ RECENT LEDGER ━━━ */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>{t("recent_ledger")}</Text>
-          <TouchableOpacity activeOpacity={0.7}>
+          <TouchableOpacity activeOpacity={0.7} onPress={() => router.push("/(tabs)/history")}>
             <Text style={styles.sectionAction}>{t("review_all")}</Text>
           </TouchableOpacity>
         </View>
@@ -225,20 +419,38 @@ export default function HomeScreen() {
                   </View>
                   <View style={styles.txInfo}>
                     <Text style={styles.txTitle} numberOfLines={1}>
-                      {tx.note || tx.category}
+                      {tx.note || translateCategory(tx.category, t)}
                     </Text>
                     <Text style={styles.txMeta}>
-                      {tx.category} • {txDate}
+                      {translateCategory(tx.category, t)} • {txDate}
                     </Text>
                   </View>
-                  <Text
-                    style={[
-                      styles.txAmount,
-                      { color: tx.type === "income" ? C.primary : C.onSurface },
-                    ]}
-                  >
-                    {tx.type === "income" ? "+" : "-"}Rp {formatCurrency(Math.abs(tx.amount)).whole}
-                  </Text>
+                  <View style={{ alignItems: "flex-end", gap: 4 }}>
+                    <Text
+                      style={[
+                        styles.txAmount,
+                        { color: tx.type === "income" ? C.primary : C.onSurface },
+                      ]}
+                    >
+                      {tx.type === "income" ? "+" : "-"}Rp {formatCurrency(Math.abs(tx.amount)).whole}
+                    </Text>
+                    {/* Permanent Delete/Undo Button */}
+                    <TouchableOpacity 
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      onPress={() => {
+                        Alert.alert(
+                          t("delete_transaction") || "Hapus Transaksi", 
+                          t("delete_confirm_msg") || "Apakah kamu yakin ingin menghapus transaksi ini?",
+                          [
+                            { text: t("cancel") || "Batal", style: "cancel" },
+                            { text: t("delete") || "Hapus", style: "destructive", onPress: () => deleteTx({ transactionId: tx._id }) }
+                          ]
+                        );
+                      }}
+                    >
+                      <Text style={{ fontSize: 11, color: C.error, fontWeight: "600" }}>{t("delete") || "Hapus"}</Text>
+                    </TouchableOpacity>
+                  </View>
                 </TouchableOpacity>
               );
             })
@@ -251,7 +463,7 @@ export default function HomeScreen() {
         </View>
 
         {activeGoal ? (
-          <TouchableOpacity activeOpacity={0.9} style={[styles.goalCard, styles.elevation]}>
+          <TouchableOpacity activeOpacity={0.9} style={[styles.goalCard, styles.elevation]} onPress={() => router.push("/(tabs)/goals")}>
             <Text style={styles.goalLabel}>{t("active_quest_label")}</Text>
             <Text style={styles.goalTitle}>{activeGoal.title}</Text>
             <View style={styles.goalProgressSection}>
@@ -273,7 +485,7 @@ export default function HomeScreen() {
         )}
 
         {/* Manifest New Goal */}
-        <TouchableOpacity activeOpacity={0.8} style={styles.newGoalCard}>
+        <TouchableOpacity activeOpacity={0.8} style={styles.newGoalCard} onPress={() => router.push("/(tabs)/goals")}>
           <View style={styles.newGoalCircle}>
             <Ionicons name="add" size={28} color={C.primary} />
           </View>
@@ -281,16 +493,34 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </ScrollView>
 
-      {/* ━━━ FLOATING AI BUTTON ━━━ */}
-      <TouchableOpacity activeOpacity={0.85} style={styles.fab}>
-        <LinearGradient
-          colors={[C.primary, C.primaryFixedDim]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.fabGradient}
-        >
-          <MaterialIcons name="smart-toy" size={26} color="#fff" />
-        </LinearGradient>
+      {/* ━━━ UNDO BANNER ━━━ */}
+      {undoTx?.visible && (
+        <View style={styles.undoBanner}>
+          <Text style={styles.undoText}>{t("tx_added" as any) || "Transaksi ditambahkan"}</Text>
+          <TouchableOpacity 
+            activeOpacity={0.7}
+            onPress={async () => {
+              if (undoTx.id) {
+                await deleteTx({ transactionId: undoTx.id });
+                setUndoTx(prev => prev ? { ...prev, visible: false } : null);
+              }
+            }}
+          >
+            <Text style={styles.undoButton}>BATALKAN</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      <VoiceInputBubble />
+      {/* ━━━ FLOATING ADD BUTTON ━━━ */}
+      <TouchableOpacity 
+        activeOpacity={0.85} 
+        style={styles.fab} 
+        onPress={() => router.push("/addTransaction")}
+      >
+        <View style={styles.fabContainer}>
+          <MaterialIcons name="add" size={32} color="#101113" />
+        </View>
       </TouchableOpacity>
     </SafeAreaView>
   );
@@ -309,6 +539,37 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 110,
   },
+  // Undo Banner
+  undoBanner: {
+    position: "absolute",
+    bottom: Platform.OS === "ios" ? 110 : 90,
+    left: 20,
+    right: 95, // leave space for FABs
+    backgroundColor: C.onSurface,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 8,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    zIndex: 100,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+  },
+  undoText: {
+    color: C.surface,
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  undoButton: {
+    color: C.primaryFixed,
+    fontSize: 14,
+    fontWeight: "800",
+    letterSpacing: 0.5,
+  },
 
   // Header
   header: {
@@ -323,9 +584,9 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   avatarWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     overflow: "hidden",
     backgroundColor: C.surfaceContainerHigh,
   },
@@ -375,36 +636,50 @@ const styles = StyleSheet.create({
   heroCents: {
     color: C.primary,
   },
-  badgeRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-    marginTop: 16,
-  },
-  badgeGreen: {
+  incExpRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    marginTop: 18,
+    paddingVertical: 4,
+  },
+  incExpItem: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  incIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: C.primaryFixed,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  badgeGreenText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: C.onPrimaryFixedVariant,
+  expIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: C.tertiaryFixed,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  badgeNeutral: {
-    backgroundColor: C.surfaceContainerLowest,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
-  },
-  badgeNeutralText: {
-    fontSize: 13,
+  incExpLabel: {
+    fontSize: 12,
     fontWeight: "500",
     color: C.onSurfaceVariant,
+    marginBottom: 2,
+  },
+  incExpAmount: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: C.onSurface,
+  },
+  incExpDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: C.outlineVariant,
+    marginHorizontal: 12,
   },
 
   // AI Card
@@ -648,17 +923,17 @@ const styles = StyleSheet.create({
     bottom: Platform.OS === "ios" ? 105 : 85,
     right: 20,
     zIndex: 50,
-    borderRadius: 30,
-    shadowColor: "#0d631b",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
-    elevation: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 8,
   },
-  fabGradient: {
+  fabContainer: {
     width: 60,
     height: 60,
-    borderRadius: 30,
+    borderRadius: 22,
+    backgroundColor: "#34C759", // Bright green from reference
     alignItems: "center",
     justifyContent: "center",
   },

@@ -62,6 +62,7 @@ export const registerUser = mutation({
       _id: userId,
       name,
       email,
+      photoUrl: undefined,
       createdAt: Date.now(),
     };
   },
@@ -102,6 +103,7 @@ export const loginUser = mutation({
       _id: user._id,
       name: user.name,
       email: user.email,
+      photoUrl: user.photoUrl,
       createdAt: user.createdAt,
     };
   },
@@ -128,13 +130,16 @@ export const loginWithGoogle = mutation({
       .unique();
 
     if (existingUser) {
-      if (args.photoUrl && args.photoUrl !== existingUser.photoUrl) {
+      // Hanya perbarui photoUrl dari Google jika user saat ini belum punya foto sama sekali
+      if (args.photoUrl && !existingUser.photoUrl) {
         await ctx.db.patch(existingUser._id, { photoUrl: args.photoUrl });
+        existingUser.photoUrl = args.photoUrl;
       }
       return {
         _id: existingUser._id,
         name: existingUser.name,
         email: existingUser.email,
+        photoUrl: existingUser.photoUrl,
         createdAt: existingUser.createdAt,
       };
     }
@@ -151,6 +156,7 @@ export const loginWithGoogle = mutation({
       _id: userId,
       name,
       email,
+      photoUrl: args.photoUrl,
       createdAt: Date.now(),
     };
   },
@@ -168,6 +174,7 @@ export const getCurrentUser = query({
       _id: user._id,
       name: user.name,
       email: user.email,
+      photoUrl: user.photoUrl,
       createdAt: user.createdAt,
     };
   },
